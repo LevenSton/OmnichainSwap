@@ -102,13 +102,15 @@ contract OmnichainSwapProxy is
         address _universalRouter,
         address _usdt,
         address _weth9,
-        address _initialOwner
+        address _initialOwner,
+        address[] calldata _signers
     ) external initializer {
         if (
             _universalRouter == address(0) ||
             _initialOwner == address(0) ||
             _usdt == address(0) ||
-            _weth9 == address(0)
+            _weth9 == address(0) ||
+            _signers.length == 0
         ) {
             revert InvalidParam();
         }
@@ -118,6 +120,13 @@ contract OmnichainSwapProxy is
         UNIVERSAL_ROUTER = _universalRouter;
         USDT = _usdt;
         WETH9 = _weth9;
+        for (uint256 i = 0; i < _signers.length; i++) {
+            if (_signers[i] == address(0)) {
+                revert InvalidParam();
+            }
+            signers.push(_signers[i]);
+            authorized[_signers[i]] = true;
+        }
     }
 
     /// @notice Swap tokens from srcToken to USDT, and emit SwapCompleted event
@@ -153,8 +162,6 @@ contract OmnichainSwapProxy is
                 address(this)
             );
             uint256 usdtBeforeBalance = IERC20(USDT).balanceOf(address(this));
-
-            //uint256 allowance = IERC20(srcToken).allowance(address(this), PERMIT2);
             if (
                 IERC20(srcToken).allowance(address(this), PERMIT2) < srcAmount
             ) {

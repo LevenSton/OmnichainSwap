@@ -4,6 +4,9 @@
     "@nomicfoundation/hardhat-toolbox": "^5.0.0",
     "@openzeppelin/contracts": "^5.1.0",
     "@openzeppelin/contracts-upgradeable": "^5.1.0",
+    "@openzeppelin/hardhat-upgrades": "^3.0.4",
+    "dotenv": "^16.4.5",
+    "hardhat-deploy": "^0.11.45",
     "hardhat": "^2.22.17"
   }
 }
