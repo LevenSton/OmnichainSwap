@@ -44,6 +44,11 @@ contract OmnichainSwapProxy is
     error UniExecuteFailed();
     error USDTUnExpected();
     error DstTokenUnExpected();
+    error UsedHash();
+    error TransferFailed();
+    error AlreadyExist();
+    error NotExist();
+    error DuplicatedSignature();
 
     event SwapCompleted(
         address indexed user,
@@ -148,11 +153,11 @@ contract OmnichainSwapProxy is
         bytes calldata callUnidata
     ) external payable whenNotPaused nonReentrant {
         if (msg.value > 0) {
-            require(srcToken == WETH9, "Invalid srcToken");
-            require(msg.value == srcAmount, "Invalid amount");
+            if (msg.value != srcAmount || srcToken != WETH9) {
+                revert InvalidParam();
+            }
             IWETH9(WETH9).deposit{value: msg.value}();
         } else {
-            require(srcToken != WETH9, "Invalid srcToken");
             IERC20(srcToken).safeTransferFrom(
                 msg.sender,
                 address(this),
@@ -200,7 +205,9 @@ contract OmnichainSwapProxy is
             realSrcAmount = beforesrcTokenBalance - afterSrcTokenBalance;
             uint256 usdtAfterBalance = IERC20(USDT).balanceOf(address(this));
             usdtBalance = usdtAfterBalance - usdtBeforeBalance;
-            require(usdtBalance > 0, "Invalid swap amount");
+            if (usdtBalance == 0) {
+                revert USDTUnExpected();
+            }
         }
 
         emit SwapCompleted(
@@ -222,6 +229,10 @@ contract OmnichainSwapProxy is
         bytes calldata callUnidata,
         bytes[] calldata signatures
     ) external payable whenNotPaused {
+        if (usedHash[txHash]) {
+            revert UsedHash();
+        }
+        usedHash[txHash] = true;
         recover(
             buildExecuteDstUniByProtocolSeparator(
                 msg.sender,
@@ -294,6 +305,9 @@ contract OmnichainSwapProxy is
         bytes32 txHash,
         bytes[] calldata signatures
     ) external whenNotPaused {
+        if (usedHash[txHash]) {
+            revert UsedHash();
+        }
         recover(
             buildSendTokenToByProtocolSeparator(
                 msg.sender,
@@ -327,7 +341,9 @@ contract OmnichainSwapProxy is
     function rescueEth() external onlyOwner {
         uint256 amount = address(this).balance;
         (bool suc, ) = msg.sender.call{value: amount}("");
-        require(suc, "Failed to transfer eth");
+        if (!suc) {
+            revert TransferFailed();
+        }
     }
 
     function emergePause() external onlyOwner {
@@ -339,7 +355,9 @@ contract OmnichainSwapProxy is
     }
 
     function addSigner(address account) external onlyOwner {
-        require(!authorized[account], "Not reentrant");
+        if (authorized[account]) {
+            revert AlreadyExist();
+        }
         indexes[account] = signers.length;
         authorized[account] = true;
         signers.push(account);
@@ -347,8 +365,9 @@ contract OmnichainSwapProxy is
     }
 
     function removeSigner(address account) external onlyOwner {
-        require(authorized[account], "Non existent");
-        require(indexes[account] < signers.length, "Index out of range");
+        if (!authorized[account] || indexes[account] >= signers.length) {
+            revert NotExist();
+        }
 
         uint256 index = indexes[account];
         uint256 lastIndex = signers.length - 1;
@@ -371,16 +390,19 @@ contract OmnichainSwapProxy is
         bytes[] calldata signatures
     ) private view returns (bool) {
         uint256 length = signers.length;
-        require(
-            length > 0 && length == signatures.length,
-            "Invalid signature length"
-        );
+        if (length == 0 || length != signatures.length) {
+            revert InvalidParam();
+        }
         address[] memory signed = new address[](length);
         for (uint256 i = 0; i < length; i++) {
             address signer = calSigner(hash, signatures[i]);
-            require(authorized[signer], "Invalid signer");
+            if (!authorized[signer]) {
+                revert InvalidSignature();
+            }
             for (uint256 j = 0; j < i; j++) {
-                require(signed[j] != signer, "Duplicated");
+                if (signed[j] == signer) {
+                    revert DuplicatedSignature();
+                }
             }
             signed[i] = signer;
         }
