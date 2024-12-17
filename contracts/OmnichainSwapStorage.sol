@@ -15,6 +15,7 @@ abstract contract OmnichainSwapStorage {
     address public relayer;
     address[] public signers;
     mapping(address => bool) public authorized;
+    mapping(address => uint256) public indexes;
     uint256 public threshold;
 
     mapping(address => mapping(uint256 => address)) whitelistTokens;

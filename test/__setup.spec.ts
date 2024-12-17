@@ -84,6 +84,8 @@ before(async function () {
   await expect(omnichainSwapProxyContract.connect(user).rescueEth()).to.be.revertedWithCustomError(omnichainSwapProxyContract, ERRORS.OwnableUnauthorizedAccount);
   await expect(omnichainSwapProxyContract.connect(user).emergePause()).to.be.revertedWithCustomError(omnichainSwapProxyContract, ERRORS.OwnableUnauthorizedAccount);
   await expect(omnichainSwapProxyContract.connect(user).unPause()).to.be.revertedWithCustomError(omnichainSwapProxyContract, ERRORS.OwnableUnauthorizedAccount);
+  await expect(omnichainSwapProxyContract.connect(user).addSigner(userAddress)).to.be.revertedWithCustomError(omnichainSwapProxyContract, ERRORS.OwnableUnauthorizedAccount);
+  await expect(omnichainSwapProxyContract.connect(user).removeSigner(userAddress)).to.be.revertedWithCustomError(omnichainSwapProxyContract, ERRORS.OwnableUnauthorizedAccount);
 
   //create univ3 and v2 pool
   const nonfungiblePositionManagerAddress = "0x03a520b32C04BF3bEEf7BEb72E919cf822Ed34f1"
@@ -93,7 +95,7 @@ before(async function () {
   await expect(mockToken.connect(deployer).approve(uniRouterV2, MAX_UINT256)).to.be.not.reverted;
 
   await IUniswapV2Router02__factory.connect(uniRouterV2, deployer).addLiquidityETH(mockTokenAddress, mintAmount / BigInt(2), 0, 0, deployerAddress, currentTimestamp + 10, { value: ethers.parseEther("100") });
-  
+
   // 100000000 = 100 eth initial price for v3 pool
   const sqrtPriceX96 = BigInt("79228162514264337593543950")
   const sqrtPriceB96 = BigInt("79228162514264337593543950336000")

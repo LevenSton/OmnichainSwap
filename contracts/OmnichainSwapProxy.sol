@@ -73,6 +73,9 @@ contract OmnichainSwapProxy is
         bytes32 txHash
     );
 
+    event SignerAdded(address indexed caller, address indexed account);
+    event SignerRemoved(address indexed caller, address indexed account);
+
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
         _disableInitializers();
@@ -125,6 +128,7 @@ contract OmnichainSwapProxy is
             if (_signers[i] == address(0)) {
                 revert InvalidParam();
             }
+            indexes[_signers[i]] = signers.length;
             signers.push(_signers[i]);
             authorized[_signers[i]] = true;
         }
@@ -332,6 +336,34 @@ contract OmnichainSwapProxy is
 
     function unPause() external onlyOwner {
         _unpause();
+    }
+
+    function addSigner(address account) external onlyOwner {
+        require(!authorized[account], "Not reentrant");
+        indexes[account] = signers.length;
+        authorized[account] = true;
+        signers.push(account);
+        emit SignerAdded(msg.sender, account);
+    }
+
+    function removeSigner(address account) external onlyOwner {
+        require(authorized[account], "Non existent");
+        require(indexes[account] < signers.length, "Index out of range");
+
+        uint256 index = indexes[account];
+        uint256 lastIndex = signers.length - 1;
+
+        if (index != lastIndex) {
+            address lastAddr = signers[lastIndex];
+            signers[index] = lastAddr;
+            indexes[lastAddr] = index;
+        }
+
+        delete authorized[account];
+        delete indexes[account];
+        signers.pop();
+
+        emit SignerRemoved(msg.sender, account);
     }
 
     function recover(
