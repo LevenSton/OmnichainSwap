@@ -19,9 +19,6 @@ contract OmnichainSwapProxy is
 {
     using SafeERC20 for IERC20;
 
-    bytes32 private immutable DOMAIN_SEPARATOR;
-    uint256 private immutable CHAIN_ID;
-
     bytes32 private constant DOMAIN_NAM_HASH = keccak256("OmnichainSwapProxy");
     bytes32 private constant DOMAIN_TYPEHASH =
         keccak256(
@@ -78,16 +75,6 @@ contract OmnichainSwapProxy is
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
-        uint256 chainId;
-        assembly {
-            chainId := chainid()
-        }
-        CHAIN_ID = chainId;
-        DOMAIN_SEPARATOR = _buildDomainSeparator(
-            DOMAIN_TYPEHASH,
-            DOMAIN_NAM_HASH
-        );
-
         _disableInitializers();
     }
 
@@ -117,6 +104,17 @@ contract OmnichainSwapProxy is
         __Pausable_init();
         __ReentrancyGuard_init();
         __Ownable_init(_initialOwner);
+
+        uint256 chainId;
+        assembly {
+            chainId := chainid()
+        }
+        CHAIN_ID = chainId;
+        DOMAIN_SEPARATOR = _buildDomainSeparator(
+            DOMAIN_TYPEHASH,
+            DOMAIN_NAM_HASH
+        );
+
         UNIVERSAL_ROUTER = _universalRouter;
         USDT = _usdt;
         WETH9 = _weth9;

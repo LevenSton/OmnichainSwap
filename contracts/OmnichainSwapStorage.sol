@@ -2,6 +2,9 @@
 pragma solidity 0.8.28;
 
 abstract contract OmnichainSwapStorage {
+    bytes32 internal DOMAIN_SEPARATOR;
+    uint256 internal CHAIN_ID;
+
     // uniswap universal router address
     address internal UNIVERSAL_ROUTER;
     address internal PERMIT2;
