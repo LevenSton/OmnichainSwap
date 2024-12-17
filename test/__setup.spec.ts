@@ -14,24 +14,25 @@ export let deployer: Signer;
 export let signer1: Signer;
 export let signer2: Signer;
 export let user: Signer;
-
 export let deployerAddress: string;
 export let signer1Address: string;
 export let signer2Address: string;
 export let userAddress: string;
-
-
 export let mockToken: MockToken;
 export let mockTokenAddress: string;
-
 export let omnichainSwapProxyAddress: string;
 export let abiCoder: AbiCoder;
-
 export let omnichainSwapProxyContract: OmnichainSwapProxy;
-
 export let mintAmount = ethers.parseEther("200000000");
+export let currentTimestamp = parseInt((new Date().getTime() / 1000).toFixed(0))
+export let oneHourLater = parseInt((new Date().getTime() / 1000).toFixed(0)) + 60*60
 
-export let currentTimestamp = parseInt((new Date().getTime() / 1000 ).toFixed(0))
+export let dstTokenAddress: string;
+export let dstChainId: number;
+export let _universalRouter: string;
+export let _usdt: string;
+export let _weth: string;
+export let _permit2: string;
 
 export function makeSuiteCleanRoom(name: string, tests: () => void) {
   describe(name, () => {
@@ -58,15 +59,19 @@ before(async function () {
   signer2Address = await signer2.getAddress();
   userAddress = await user.getAddress();
 
+  dstChainId = 1; //ethereum
+  dstTokenAddress = "0xB8c77482e45F1F44dE1745F52C74426C631bDD52"
+
   mockToken = await new MockToken__factory(deployer).deploy();
   mockTokenAddress = await mockToken.getAddress();
 
-  const _universalRouter = "0x3fC91A3afd70395Cd496C647d5a6CC9D4B2b7FAD";
-  const _usdt = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
-  const _weth = "0x4200000000000000000000000000000000000006"
+  _universalRouter = "0x3fC91A3afd70395Cd496C647d5a6CC9D4B2b7FAD";
+  _usdt = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
+  _weth = "0x4200000000000000000000000000000000000006"
+  _permit2 = "0x000000000022D473030F116dDEE9F6B43aC78BA3"
 
   const OmnichainSwapProxy = await ethers.getContractFactory("OmnichainSwapProxy");
-  const omnichainSwapProxy = await upgrades.deployProxy(OmnichainSwapProxy, [_universalRouter, _usdt, _weth, deployerAddress, [signer1Address, signer2Address]]);
+  const omnichainSwapProxy = await upgrades.deployProxy(OmnichainSwapProxy, [_universalRouter, _usdt, _weth, _permit2, deployerAddress, [signer1Address, signer2Address]]);
   const proxyAddress = await omnichainSwapProxy.getAddress()
   console.log("proxy address: ", proxyAddress)
   console.log("admin address: ", await upgrades.erc1967.getAdminAddress(proxyAddress))
@@ -77,6 +82,8 @@ before(async function () {
 
   await expect(omnichainSwapProxyContract.connect(user).rescueTokens(_usdt)).to.be.revertedWithCustomError(omnichainSwapProxyContract, ERRORS.OwnableUnauthorizedAccount);
   await expect(omnichainSwapProxyContract.connect(user).rescueEth()).to.be.revertedWithCustomError(omnichainSwapProxyContract, ERRORS.OwnableUnauthorizedAccount);
+  await expect(omnichainSwapProxyContract.connect(user).emergePause()).to.be.revertedWithCustomError(omnichainSwapProxyContract, ERRORS.OwnableUnauthorizedAccount);
+  await expect(omnichainSwapProxyContract.connect(user).unPause()).to.be.revertedWithCustomError(omnichainSwapProxyContract, ERRORS.OwnableUnauthorizedAccount);
 
   //create univ3 and v2 pool
   const nonfungiblePositionManagerAddress = "0x03a520b32C04BF3bEEf7BEb72E919cf822Ed34f1"
@@ -85,10 +92,8 @@ before(async function () {
   await expect(mockToken.connect(deployer).approve(nonfungiblePositionManagerAddress, MAX_UINT256)).to.be.not.reverted;
   await expect(mockToken.connect(deployer).approve(uniRouterV2, MAX_UINT256)).to.be.not.reverted;
 
-  console.log("balance: ", ethers.formatEther(await mockToken.balanceOf(deployerAddress)))
-
   await IUniswapV2Router02__factory.connect(uniRouterV2, deployer).addLiquidityETH(mockTokenAddress, mintAmount / BigInt(2), 0, 0, deployerAddress, currentTimestamp + 10, { value: ethers.parseEther("100") });
-  console.log("balance: ", ethers.formatEther(await mockToken.balanceOf(deployerAddress)))
+  
   // 100000000 = 100 eth initial price for v3 pool
   const sqrtPriceX96 = BigInt("79228162514264337593543950")
   const sqrtPriceB96 = BigInt("79228162514264337593543950336000")
@@ -110,8 +115,6 @@ before(async function () {
     amount0Desired = ethers.parseEther("100");
     amount1Desired = mintAmount / BigInt(2);
   }
-  console.log("token0: ", token0)
-  console.log("token1: ", token1)
   await INonfungiblePositionManager__factory.connect(nonfungiblePositionManagerAddress, deployer).createAndInitializePoolIfNecessary(token0, token1, 10000, price);
   await INonfungiblePositionManager__factory.connect(nonfungiblePositionManagerAddress, deployer).mint({
     token0: token0,
@@ -126,5 +129,12 @@ before(async function () {
     recipient: deployerAddress,
     deadline: currentTimestamp + 10
   }, { value: ethers.parseEther("100") });
-  console.log("balance: ", ethers.formatEther(await mockToken.balanceOf(deployerAddress)))
+
+  // const functionSelector = ethers.id('execute(bytes,bytes[],uint256)').slice(0, 10); // 取前4字节
+  // const param1 = '0x0a00060c'
+  // const param2 = ['0x0000000000000000000000002816a491dd0b7a88d84cbded842a618e59016888000000000000000000000000ffffffffffffffffffffffffffffffffffffffff0000000000000000000000000000000000000000000000000000000066c416e800000000000000000000000000000000000000000000000000000000000000000000000000000000000000003fc91a3afd70395cd496c647d5a6cc9d4b2b7fad00000000000000000000000000000000000000000000000000000000669c90f000000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000000041e43ad7ce4e9b8dff16bfae6160cb5248bce91582b57c646c9b8df77f6160a08176a329cbfae8d29edac3d934a4e706ac648b852d1f6d3c98c18af8c6ecfb8a261c00000000000000000000000000000000000000000000000000000000000000', '0x00000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000004aa44a1e6bc873a7000000000000000000000000000000000000000000000000094ddda4186ee4d400000000000000000000000000000000000000000000000000000000000000a00000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000002b2816a491dd0b7a88d84cbded842a618e590168880027104200000000000000000000000000000000000006000000000000000000000000000000000000000000', '0x00000000000000000000000042000000000000000000000000000000000000060000000000000000000000005d64d14d2cf4fe5fe4e65b1c7e3d11e18d4930910000000000000000000000000000000000000000000000000000000000000019', '0x0000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000094ddda4186ee4d4']
+  // const param3 = 1721535251
+  // const encodedParams = abiCoder.encode(['bytes', 'bytes[]', 'uint256'], [param1, param2, param3]);
+  // const data2 = functionSelector + encodedParams.slice(2); // 去掉 0x
+  // console.log("data2: ", data2)
 });

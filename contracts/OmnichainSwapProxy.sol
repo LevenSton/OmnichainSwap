@@ -89,6 +89,7 @@ contract OmnichainSwapProxy is
         address _universalRouter,
         address _usdt,
         address _weth9,
+        address _permit2,
         address _initialOwner,
         address[] calldata _signers
     ) external initializer {
@@ -97,6 +98,7 @@ contract OmnichainSwapProxy is
             _initialOwner == address(0) ||
             _usdt == address(0) ||
             _weth9 == address(0) ||
+            _permit2 == address(0) ||
             _signers.length == 0
         ) {
             revert InvalidParam();
@@ -118,6 +120,7 @@ contract OmnichainSwapProxy is
         UNIVERSAL_ROUTER = _universalRouter;
         USDT = _usdt;
         WETH9 = _weth9;
+        PERMIT2 = _permit2;
         for (uint256 i = 0; i < _signers.length; i++) {
             if (_signers[i] == address(0)) {
                 revert InvalidParam();
@@ -321,6 +324,14 @@ contract OmnichainSwapProxy is
         uint256 amount = address(this).balance;
         (bool suc, ) = msg.sender.call{value: amount}("");
         require(suc, "Failed to transfer eth");
+    }
+
+    function emergePause() external onlyOwner {
+        _pause();
+    }
+
+    function unPause() external onlyOwner {
+        _unpause();
     }
 
     function recover(
