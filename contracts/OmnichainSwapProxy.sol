@@ -19,6 +19,9 @@ contract OmnichainSwapProxy is
 {
     using SafeERC20 for IERC20;
 
+    address private constant NATIVE_ETH =
+        0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+
     bytes32 private constant DOMAIN_NAM_HASH = keccak256("OmnichainSwapProxy");
     bytes32 private constant DOMAIN_TYPEHASH =
         keccak256(
@@ -53,10 +56,19 @@ contract OmnichainSwapProxy is
     event SwapCompleted(
         address indexed user,
         address indexed srcToken,
-        address indexed dstToken,
+        bytes32 indexed dstToken,
+        bytes32 to,
         uint256 srcAmount,
         uint256 usdtAmount,
         uint256 dstChainId
+    );
+
+    event ExecDstUniByProtocol(
+        address indexed receiptAddress,
+        address indexed dstToken,
+        uint256 indexed fromChainId,
+        uint256 amount,
+        bytes32 txHash
     );
 
     event SendTokenToByUser(
@@ -142,12 +154,14 @@ contract OmnichainSwapProxy is
     /// @notice Swap tokens from srcToken to USDT, and emit SwapCompleted event
     /// @param srcToken The source token address
     /// @param dstToken The destination token address
+    /// @param to The receipt address in destination chain
     /// @param dstChainId The destination chain id
     /// @param srcAmount The amount of srcToken to swap
     /// @param callUnidata The call data for the universal router
     function executeSrcUniByUser(
         address srcToken,
-        address dstToken,
+        bytes32 dstToken,
+        bytes32 to,
         uint256 dstChainId,
         uint256 srcAmount,
         bytes calldata callUnidata
@@ -214,6 +228,7 @@ contract OmnichainSwapProxy is
             msg.sender,
             srcToken,
             dstToken,
+            to,
             realSrcAmount,
             usdtBalance,
             dstChainId
@@ -258,7 +273,7 @@ contract OmnichainSwapProxy is
         }
         uint256 usdtBeforeBalance = IERC20(USDT).balanceOf(address(this));
         uint256 beforeDstTokenBalance = IERC20(dstToken).balanceOf(
-            receiptAddress
+            address(this)
         );
         (bool success, ) = UNIVERSAL_ROUTER.call(callUnidata);
         if (!success) {
@@ -269,11 +284,34 @@ contract OmnichainSwapProxy is
             revert USDTUnExpected();
         }
         uint256 afterDstTokenBalance = IERC20(dstToken).balanceOf(
-            receiptAddress
+            address(this)
         );
         if (afterDstTokenBalance <= beforeDstTokenBalance) {
             revert DstTokenUnExpected();
         }
+        if (dstToken == NATIVE_ETH) {
+            IWETH9(WETH9).withdraw(
+                afterDstTokenBalance - beforeDstTokenBalance
+            );
+            (bool suc, ) = payable(receiptAddress).call{
+                value: afterDstTokenBalance - beforeDstTokenBalance
+            }("");
+            if (!suc) {
+                revert TransferFailed();
+            }
+        } else {
+            IERC20(dstToken).safeTransfer(
+                receiptAddress,
+                afterDstTokenBalance - beforeDstTokenBalance
+            );
+        }
+        emit ExecDstUniByProtocol(
+            receiptAddress,
+            dstToken,
+            fromChainId,
+            amount,
+            txHash
+        );
     }
 
     function sendTokenToByUser(

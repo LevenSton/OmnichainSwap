@@ -60,7 +60,8 @@ before(async function () {
   userAddress = await user.getAddress();
 
   dstChainId = 1; //ethereum
-  dstTokenAddress = "0xB8c77482e45F1F44dE1745F52C74426C631bDD52"
+  let dstToken = "0xB8c77482e45F1F44dE1745F52C74426C631bDD52"
+  dstTokenAddress = ethers.zeroPadValue(dstToken, 32),
 
   mockToken = await new MockToken__factory(deployer).deploy();
   mockTokenAddress = await mockToken.getAddress();
