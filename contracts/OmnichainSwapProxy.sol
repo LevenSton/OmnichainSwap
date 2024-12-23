@@ -280,7 +280,7 @@ contract OmnichainSwapProxy is
             revert UniExecuteFailed();
         }
         uint256 usdtAfterBalance = IERC20(USDT).balanceOf(address(this));
-        if (usdtAfterBalance - usdtBeforeBalance != amount) {
+        if (usdtBeforeBalance - usdtAfterBalance != amount) {
             revert USDTUnExpected();
         }
         uint256 afterDstTokenBalance = IERC20(dstToken).balanceOf(
