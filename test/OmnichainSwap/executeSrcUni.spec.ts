@@ -33,7 +33,14 @@ makeSuiteCleanRoom('Execute OmnichainSwap ', function () {
         context('Negatives', function () {
             it('User should fail to executeSrcUni if emergePause.',   async function () {
                 await expect(omnichainSwapProxyContract.connect(deployer).emergePause()).to.be.not.reverted;
-                await expect(omnichainSwapProxyContract.connect(user).executeSrcUniByUser(mockTokenAddress, dstTokenAddress, ethers.zeroPadValue(userAddress, 32), dstChainId, 1000, "0x00")).to.be.revertedWithCustomError(omnichainSwapProxyContract, ERRORS.EnforcedPause);
+                await expect(omnichainSwapProxyContract.connect(user).executeSrcUniByUser({
+                    srcToken: mockTokenAddress,
+                    dstToken: ethers.zeroPadValue(dstTokenAddress, 32),
+                    to: ethers.zeroPadValue(userAddress, 32),
+                    dstChainId: dstChainId,
+                    srcAmount: 1000,
+                    callUnidata: "0x00"
+                })).to.be.revertedWithCustomError(omnichainSwapProxyContract, ERRORS.EnforcedPause);
             });
         })
 
@@ -59,7 +66,14 @@ makeSuiteCleanRoom('Execute OmnichainSwap ', function () {
                 const beforeUsdtTokenBalance = await MockToken__factory.connect(_usdt, user).balanceOf(omnichainSwapProxyAddress);
                 const encodedParams = abiCoder.encode(['bytes', 'bytes[]', 'uint256'], [commands, inputs, oneHourLater]);
                 const data = functionSelector + encodedParams.slice(2);
-                await expect(omnichainSwapProxyContract.connect(user).executeSrcUniByUser(mockTokenAddress, dstTokenAddress, ethers.zeroPadValue(userAddress, 32), dstChainId, mintMockAmount, data)).to.be.not.reverted;
+                await expect(omnichainSwapProxyContract.connect(user).executeSrcUniByUser({
+                    srcToken: mockTokenAddress,
+                    dstToken: ethers.zeroPadValue(dstTokenAddress, 32),
+                    to: ethers.zeroPadValue(userAddress, 32),
+                    dstChainId: dstChainId,
+                    srcAmount: mintMockAmount,
+                    callUnidata: data
+                })).to.be.not.reverted;
                 const afterSrcTokenBalance = await mockToken.balanceOf(omnichainSwapProxyAddress);
                 const afterUsdtTokenBalance = await MockToken__factory.connect(_usdt, user).balanceOf(omnichainSwapProxyAddress);
                 expect(afterSrcTokenBalance).to.be.equal(beforeSrcTokenBalance);

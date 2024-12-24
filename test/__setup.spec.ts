@@ -81,8 +81,8 @@ before(async function () {
   omnichainSwapProxyContract = OmnichainSwapProxy__factory.connect(proxyAddress)
   omnichainSwapProxyAddress = await omnichainSwapProxyContract.getAddress();
 
-  await expect(omnichainSwapProxyContract.connect(user).rescueTokens(_usdt)).to.be.revertedWithCustomError(omnichainSwapProxyContract, ERRORS.OwnableUnauthorizedAccount);
-  await expect(omnichainSwapProxyContract.connect(user).rescueEth()).to.be.revertedWithCustomError(omnichainSwapProxyContract, ERRORS.OwnableUnauthorizedAccount);
+  await expect(omnichainSwapProxyContract.connect(user).withdrawTokens(_usdt)).to.be.revertedWithCustomError(omnichainSwapProxyContract, ERRORS.OwnableUnauthorizedAccount);
+  await expect(omnichainSwapProxyContract.connect(user).withdrawEth()).to.be.revertedWithCustomError(omnichainSwapProxyContract, ERRORS.OwnableUnauthorizedAccount);
   await expect(omnichainSwapProxyContract.connect(user).emergePause()).to.be.revertedWithCustomError(omnichainSwapProxyContract, ERRORS.OwnableUnauthorizedAccount);
   await expect(omnichainSwapProxyContract.connect(user).unPause()).to.be.revertedWithCustomError(omnichainSwapProxyContract, ERRORS.OwnableUnauthorizedAccount);
   await expect(omnichainSwapProxyContract.connect(user).addSigner(userAddress)).to.be.revertedWithCustomError(omnichainSwapProxyContract, ERRORS.OwnableUnauthorizedAccount);
