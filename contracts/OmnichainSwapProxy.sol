@@ -69,6 +69,7 @@ contract OmnichainSwapProxy is
         bytes32 dstToken,
         bytes32 to,
         uint256 srcAmount,
+        uint256 minAmountOut,
         uint256 usdtAmount,
         uint256 dstChainId
     );
@@ -207,6 +208,7 @@ contract OmnichainSwapProxy is
             data.dstToken,
             data.to,
             data.srcAmount,
+            data.minAmountOut,
             usdtBalance,
             data.dstChainId
         );

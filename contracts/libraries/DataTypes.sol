@@ -8,6 +8,7 @@ library DataTypes {
         bytes32 to;
         uint256 dstChainId;
         uint256 srcAmount;
+        uint256 minAmountOut;
         bytes callUnidata;
     }
 

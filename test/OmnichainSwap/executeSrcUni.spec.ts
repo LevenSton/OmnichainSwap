@@ -39,6 +39,7 @@ makeSuiteCleanRoom('Execute OmnichainSwap ', function () {
                     to: ethers.zeroPadValue(userAddress, 32),
                     dstChainId: dstChainId,
                     srcAmount: 1000,
+                    minAmountOut: 0,
                     callUnidata: "0x00"
                 })).to.be.revertedWithCustomError(omnichainSwapProxyContract, ERRORS.EnforcedPause);
             });
@@ -72,6 +73,7 @@ makeSuiteCleanRoom('Execute OmnichainSwap ', function () {
                     to: ethers.zeroPadValue(userAddress, 32),
                     dstChainId: dstChainId,
                     srcAmount: mintMockAmount,
+                    minAmountOut: 0,
                     callUnidata: data
                 })).to.be.not.reverted;
                 const afterSrcTokenBalance = await mockToken.balanceOf(omnichainSwapProxyAddress);
