@@ -6,7 +6,6 @@ import 'hardhat-deploy'
 dotenv.config()
 
 const deployer = process.env.DEPLOY_PRIVATE_KEY || '0x' + '11'.repeat(32)
-const governance = process.env.GOVERNANCE_PRIVATE_KEY || '0x' + '11'.repeat(32)
 const BASE_BLOCK_EXPLORER_KEY = process.env.BASE_BLOCK_EXPLORER_KEY || '';
 
 const config: HardhatUserConfig = {
@@ -37,26 +36,31 @@ const config: HardhatUserConfig = {
     linea_testnet: {
       chainId: 59140,
       url: process.env.LINEA_TEST_RPC_URL || '',
-      accounts: [deployer, governance],
+      accounts: [deployer],
       gasPrice: 2000000000,
       gas: 2000000,
     },
     linea_mainnet: {
       chainId: 59144,
       url: process.env.LINEA_RPC_URL || '',
-      accounts: [deployer, governance],
+      accounts: [deployer],
       gasPrice: 2000000000,
       gas: 2000000,
     },
     baseMain: {
       chainId: 8453,
       url: process.env.BASE_MAIN_RPC_URL || '',
-      accounts: [deployer, governance],
+      accounts: [deployer],
     },
     baseSepolia: {
       chainId: 84532,
       url: process.env.BASE_TEST_RPC_URL || '',
-      accounts: [deployer, governance],
+      accounts: [deployer],
+    },
+    bsc: {
+      chainId: 56,
+      url: process.env.BSC_MAINNET_RPC_URL || '',
+      accounts: [deployer],
     },
   },
   paths: {

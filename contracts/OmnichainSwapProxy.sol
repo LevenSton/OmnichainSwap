@@ -461,13 +461,19 @@ contract OmnichainSwapProxy is
         uint256 srcAmount,
         bytes calldata callUnidata
     ) private {
-        uint256 beforesrcTokenBalance = IERC20(srcToken).balanceOf(
+        address realSrcToken = srcToken;
+        if (srcToken == NATIVE_ETH) {
+            realSrcToken = WETH9;
+        }
+        uint256 beforesrcTokenBalance = IERC20(realSrcToken).balanceOf(
             address(this)
         );
-        if (IERC20(srcToken).allowance(address(this), PERMIT2) < srcAmount) {
-            IERC20(srcToken).forceApprove(PERMIT2, type(uint256).max);
+        if (
+            IERC20(realSrcToken).allowance(address(this), PERMIT2) < srcAmount
+        ) {
+            IERC20(realSrcToken).forceApprove(PERMIT2, type(uint256).max);
             IAllowanceTransfer(PERMIT2).approve(
-                srcToken,
+                realSrcToken,
                 UNIVERSAL_ROUTER,
                 type(uint160).max,
                 type(uint48).max
@@ -478,7 +484,7 @@ contract OmnichainSwapProxy is
             revert UniExecuteFailed();
         }
 
-        uint256 afterSrcTokenBalance = IERC20(srcToken).balanceOf(
+        uint256 afterSrcTokenBalance = IERC20(realSrcToken).balanceOf(
             address(this)
         );
         if (beforesrcTokenBalance - afterSrcTokenBalance != srcAmount) {
