@@ -226,25 +226,29 @@ contract OmnichainSwapProxy is
             revert InvalidParam();
         }
         _transferAssetTo(data.srcAmount, data.srcToken);
-        uint256 beforeDstTokenBalance = IERC20(data.dstToken).balanceOf(
+        address readDstToken = data.dstToken;
+        if (data.dstToken == NATIVE_ETH) {
+            readDstToken = WETH9;
+        }
+        uint256 beforeDstTokenBalance = IERC20(readDstToken).balanceOf(
             address(this)
         );
         _forwardSwap(data.srcToken, data.srcAmount, data.callUnidata);
-        uint256 afterDstTokenBalance = IERC20(data.dstToken).balanceOf(
+        uint256 afterDstTokenBalance = IERC20(readDstToken).balanceOf(
             address(this)
         );
         if (afterDstTokenBalance <= beforeDstTokenBalance) {
             revert DstTokenUnExpected();
         }
         uint256 amountOut = afterDstTokenBalance - beforeDstTokenBalance;
-        if (data.dstToken == NATIVE_ETH) {
+        if (readDstToken == WETH9) {
             IWETH9(WETH9).withdraw(amountOut);
             (bool suc, ) = payable(msg.sender).call{value: amountOut}("");
             if (!suc) {
                 revert TransferFailed();
             }
         } else {
-            IERC20(data.dstToken).safeTransfer(msg.sender, amountOut);
+            IERC20(readDstToken).safeTransfer(msg.sender, amountOut);
         }
         emit ForwardToUniswap(
             eventIndex++,
