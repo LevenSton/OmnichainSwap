@@ -217,6 +217,14 @@ contract OmnichainSwapProxy is
     function forwardToUniswap(
         DataTypes.ForwardUniData calldata data
     ) external payable whenNotPaused nonReentrant {
+        if (
+            data.dstToken == address(0) ||
+            data.srcToken == address(0) ||
+            data.srcAmount == 0 ||
+            data.dstToken == data.srcToken
+        ) {
+            revert InvalidParam();
+        }
         _transferAssetTo(data.srcAmount, data.srcToken);
         uint256 beforeDstTokenBalance = IERC20(data.dstToken).balanceOf(
             address(this)
@@ -228,10 +236,16 @@ contract OmnichainSwapProxy is
         if (afterDstTokenBalance <= beforeDstTokenBalance) {
             revert DstTokenUnExpected();
         }
-        IERC20(data.dstToken).safeTransfer(
-            msg.sender,
-            afterDstTokenBalance - beforeDstTokenBalance
-        );
+        uint256 amountOut = afterDstTokenBalance - beforeDstTokenBalance;
+        if (data.dstToken == NATIVE_ETH) {
+            IWETH9(WETH9).withdraw(amountOut);
+            (bool suc, ) = payable(msg.sender).call{value: amountOut}("");
+            if (!suc) {
+                revert TransferFailed();
+            }
+        } else {
+            IERC20(data.dstToken).safeTransfer(msg.sender, amountOut);
+        }
         emit ForwardToUniswap(
             eventIndex++,
             msg.sender,
@@ -313,11 +327,16 @@ contract OmnichainSwapProxy is
         address to,
         uint256 dstChainId,
         uint256 amount
-    ) external whenNotPaused isWhitelisted(token, dstChainId) {
-        if (to == address(0) || dstChainId == CHAIN_ID) {
+    ) external payable whenNotPaused isWhitelisted(token, dstChainId) {
+        if (to == address(0) || dstChainId == CHAIN_ID || amount == 0) {
             revert InvalidParam();
         }
-        IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
+        if (msg.value > 0 && token != NATIVE_ETH) {
+            revert InvalidParam();
+        }
+        if (token != NATIVE_ETH) {
+            IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
+        }
         emit SendTokenToByUser(
             eventIndex++,
             msg.sender,
