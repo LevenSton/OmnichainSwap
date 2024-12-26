@@ -226,29 +226,29 @@ contract OmnichainSwapProxy is
             revert InvalidParam();
         }
         _transferAssetTo(data.srcAmount, data.srcToken);
-        address readDstToken = data.dstToken;
+        address realDstToken = data.dstToken;
         if (data.dstToken == NATIVE_ETH) {
-            readDstToken = WETH9;
+            realDstToken = WETH9;
         }
-        uint256 beforeDstTokenBalance = IERC20(readDstToken).balanceOf(
+        uint256 beforeDstTokenBalance = IERC20(realDstToken).balanceOf(
             address(this)
         );
         _forwardSwap(data.srcToken, data.srcAmount, data.callUnidata);
-        uint256 afterDstTokenBalance = IERC20(readDstToken).balanceOf(
+        uint256 afterDstTokenBalance = IERC20(realDstToken).balanceOf(
             address(this)
         );
         if (afterDstTokenBalance <= beforeDstTokenBalance) {
             revert DstTokenUnExpected();
         }
         uint256 amountOut = afterDstTokenBalance - beforeDstTokenBalance;
-        if (readDstToken == WETH9) {
+        if (data.dstToken == NATIVE_ETH) {
             IWETH9(WETH9).withdraw(amountOut);
             (bool suc, ) = payable(msg.sender).call{value: amountOut}("");
             if (!suc) {
                 revert TransferFailed();
             }
         } else {
-            IERC20(readDstToken).safeTransfer(msg.sender, amountOut);
+            IERC20(realDstToken).safeTransfer(msg.sender, amountOut);
         }
         emit ForwardToUniswap(
             eventIndex++,
@@ -379,7 +379,14 @@ contract OmnichainSwapProxy is
             revert InvalidParam();
         }
         usedHash[txHash] = true;
-        IERC20(token).safeTransfer(to, amount);
+        if (token != NATIVE_ETH) {
+            IERC20(token).safeTransfer(to, amount);
+        } else {
+            (bool suc, ) = payable(to).call{value: amount}("");
+            if (!suc) {
+                revert TransferFailed();
+            }
+        }
         emit SendTokenToByProtocol(
             eventIndex++,
             msg.sender,
