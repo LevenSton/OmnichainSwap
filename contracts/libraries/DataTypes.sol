@@ -15,6 +15,7 @@ library DataTypes {
     struct ForwardUniData {
         address srcToken;
         address dstToken;
+        address receiver;
         uint256 srcAmount;
         bytes callUnidata;
     }

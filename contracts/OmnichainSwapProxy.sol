@@ -80,6 +80,7 @@ contract OmnichainSwapProxy is
         address indexed dstToken,
         uint256 fromChainId,
         uint256 amount,
+        uint256 amountOut,
         bytes32 txHash
     );
 
@@ -109,6 +110,7 @@ contract OmnichainSwapProxy is
         address indexed user,
         address indexed srcToken,
         address dstToken,
+        address receiver,
         uint256 srcAmount,
         uint256 dstAmount
     );
@@ -220,6 +222,7 @@ contract OmnichainSwapProxy is
         if (
             data.dstToken == address(0) ||
             data.srcToken == address(0) ||
+            data.receiver == address(0) ||
             data.srcAmount == 0 ||
             data.dstToken == data.srcToken
         ) {
@@ -243,18 +246,19 @@ contract OmnichainSwapProxy is
         uint256 amountOut = afterDstTokenBalance - beforeDstTokenBalance;
         if (data.dstToken == NATIVE_ETH) {
             IWETH9(WETH9).withdraw(amountOut);
-            (bool suc, ) = payable(msg.sender).call{value: amountOut}("");
+            (bool suc, ) = payable(data.receiver).call{value: amountOut}("");
             if (!suc) {
                 revert TransferFailed();
             }
         } else {
-            IERC20(realDstToken).safeTransfer(msg.sender, amountOut);
+            IERC20(realDstToken).safeTransfer(data.receiver, amountOut);
         }
         emit ForwardToUniswap(
             eventIndex++,
             msg.sender,
             data.srcToken,
             data.dstToken,
+            data.receiver,
             data.srcAmount,
             afterDstTokenBalance - beforeDstTokenBalance
         );
@@ -263,58 +267,60 @@ contract OmnichainSwapProxy is
     function executeDstUniByProtocol(
         DataTypes.ExecuteDstData calldata data
     ) external payable whenNotPaused {
-        if (usedHash[data.txHash]) {
-            revert UsedHash();
-        }
-        if (data.receiptAddress == address(0)) {
-            revert InvalidParam();
-        }
-        usedHash[data.txHash] = true;
-        recover(
-            buildExecuteDstUniByProtocolSeparator(
-                msg.sender,
-                data.receiptAddress,
-                data.dstToken,
-                data.amount,
-                data.fromChainId,
-                data.txHash
-            ),
-            data.signatures
-        );
-        if (IERC20(USDT).allowance(address(this), PERMIT2) < data.amount) {
-            IERC20(USDT).forceApprove(PERMIT2, type(uint256).max);
-            IAllowanceTransfer(PERMIT2).approve(
-                USDT,
-                UNIVERSAL_ROUTER,
-                type(uint160).max,
-                type(uint48).max
+        {
+            if (usedHash[data.txHash]) {
+                revert UsedHash();
+            }
+            if (data.receiptAddress == address(0)) {
+                revert InvalidParam();
+            }
+            usedHash[data.txHash] = true;
+            recover(
+                buildExecuteDstUniByProtocolSeparator(
+                    msg.sender,
+                    data.receiptAddress,
+                    data.dstToken,
+                    data.amount,
+                    data.fromChainId,
+                    data.txHash
+                ),
+                data.signatures
             );
+            if (IERC20(USDT).allowance(address(this), PERMIT2) < data.amount) {
+                IERC20(USDT).forceApprove(PERMIT2, type(uint256).max);
+                IAllowanceTransfer(PERMIT2).approve(
+                    USDT,
+                    UNIVERSAL_ROUTER,
+                    type(uint160).max,
+                    type(uint48).max
+                );
+            }
         }
-        uint256 beforeDstTokenBalance = IERC20(data.dstToken).balanceOf(
+        address realDstToken = data.dstToken;
+        if (data.dstToken == NATIVE_ETH) {
+            realDstToken = WETH9;
+        }
+        uint256 beforeDstTokenBalance = IERC20(realDstToken).balanceOf(
             address(this)
         );
         _forwardSwap(USDT, data.amount, data.callUnidata);
-        uint256 afterDstTokenBalance = IERC20(data.dstToken).balanceOf(
+        uint256 afterDstTokenBalance = IERC20(realDstToken).balanceOf(
             address(this)
         );
         if (afterDstTokenBalance <= beforeDstTokenBalance) {
             revert DstTokenUnExpected();
         }
+        uint256 amountOut = afterDstTokenBalance - beforeDstTokenBalance;
         if (data.dstToken == NATIVE_ETH) {
-            IWETH9(WETH9).withdraw(
-                afterDstTokenBalance - beforeDstTokenBalance
+            IWETH9(WETH9).withdraw(amountOut);
+            (bool suc, ) = payable(data.receiptAddress).call{value: amountOut}(
+                ""
             );
-            (bool suc, ) = payable(data.receiptAddress).call{
-                value: afterDstTokenBalance - beforeDstTokenBalance
-            }("");
             if (!suc) {
                 revert TransferFailed();
             }
         } else {
-            IERC20(data.dstToken).safeTransfer(
-                data.receiptAddress,
-                afterDstTokenBalance - beforeDstTokenBalance
-            );
+            IERC20(data.dstToken).safeTransfer(data.receiptAddress, amountOut);
         }
         emit ExecDstUniByProtocol(
             eventIndex++,
@@ -322,6 +328,7 @@ contract OmnichainSwapProxy is
             data.dstToken,
             data.fromChainId,
             data.amount,
+            amountOut,
             data.txHash
         );
     }
