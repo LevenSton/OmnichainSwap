@@ -67,6 +67,7 @@ contract OmnichainSwapProxy is
         address indexed user,
         address indexed srcToken,
         bytes32 dstToken,
+        uint256 orderId,
         bytes32 to,
         uint256 srcAmount,
         uint256 minAmountOut,
@@ -110,6 +111,7 @@ contract OmnichainSwapProxy is
         address indexed user,
         address indexed srcToken,
         address dstToken,
+        uint256 orderId,
         address receiver,
         uint256 srcAmount,
         uint256 dstAmount
@@ -208,6 +210,7 @@ contract OmnichainSwapProxy is
             msg.sender,
             data.srcToken,
             data.dstToken,
+            data.orderId,
             data.to,
             data.srcAmount,
             data.minAmountOut,
@@ -258,6 +261,7 @@ contract OmnichainSwapProxy is
             msg.sender,
             data.srcToken,
             data.dstToken,
+            data.orderId,
             data.receiver,
             data.srcAmount,
             afterDstTokenBalance - beforeDstTokenBalance
@@ -342,7 +346,7 @@ contract OmnichainSwapProxy is
         if (to == address(0) || dstChainId == CHAIN_ID || amount == 0) {
             revert InvalidParam();
         }
-        if (msg.value > 0 && token != NATIVE_ETH) {
+        if (msg.value > 0 && (token != NATIVE_ETH || amount != msg.value)) {
             revert InvalidParam();
         }
         if (token != NATIVE_ETH) {

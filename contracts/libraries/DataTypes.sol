@@ -3,6 +3,7 @@ pragma solidity 0.8.28;
 
 library DataTypes {
     struct ExecuteSrcData {
+        uint256 orderId;
         address srcToken;
         bytes32 dstToken;
         bytes32 to;
@@ -13,6 +14,7 @@ library DataTypes {
     }
 
     struct ForwardUniData {
+        uint256 orderId;
         address srcToken;
         address dstToken;
         address receiver;

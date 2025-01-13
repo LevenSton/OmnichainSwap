@@ -10,7 +10,7 @@ const deployFn: DeployFunction = async (hre) => {
   const _weth9 = "0x4200000000000000000000000000000000000006"
   const _permit2 = "0x000000000022D473030F116dDEE9F6B43aC78BA3"
   const _initialOwner = deployer.address
-  const _signers = [deployer.address]
+  const _signers = ["0x19D1eC071E24479223e9432389694fbC242102A4"]
   const OmnichainSwapProxy = await ethers.getContractFactory("OmnichainSwapProxy");
 
   const proxy = await upgrades.deployProxy(OmnichainSwapProxy, [_universalRouter, _usdt, _weth9, _permit2, _initialOwner, _signers]);
