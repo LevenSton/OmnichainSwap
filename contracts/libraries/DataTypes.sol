@@ -5,7 +5,7 @@ library DataTypes {
     struct ExecuteSrcData {
         uint256 orderId;
         address srcToken;
-        bytes32 dstToken;
+        bytes dstToken;
         bytes32 to;
         uint256 dstChainId;
         uint256 srcAmount;
@@ -27,7 +27,7 @@ library DataTypes {
         address dstToken;
         uint256 amount;
         uint256 fromChainId;
-        bytes32 txHash;
+        bytes txHash;
         bytes callUnidata;
         bytes[] signatures;
     }

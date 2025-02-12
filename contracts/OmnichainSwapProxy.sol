@@ -31,20 +31,20 @@ contract OmnichainSwapProxy is
     bytes32 public constant EXECUTE_DST_UNI_BY_PROTOCOL_TYPEHASH =
         keccak256(
             abi.encodePacked(
-                "executeDstUniByProtocol(address caller,address receiptAddress,address dstToken,uint256 amount,uint256 fromChainId,bytes32 txHash)"
+                "executeDstUniByProtocol(address caller,address receiptAddress,address dstToken,uint256 amount,uint256 fromChainId,bytes txHash)"
             )
         );
     bytes32 public constant SEND_TOKEN_TO_BY_PROTOCOL_TYPEHASH =
         keccak256(
             abi.encodePacked(
-                "sendTokenToByProtocol(address caller,address token,address to,uint256 amount,uint256 fromChainId,bytes32 txHash)"
+                "sendTokenToByProtocol(address caller,address token,address to,uint256 amount,uint256 fromChainId,bytes txHash)"
             )
         );
 
     bytes32 public constant REFUND_USDT_BY_PROTOCOL_TYPEHASH =
         keccak256(
             abi.encodePacked(
-                "refundUSDT(address caller,address to,bytes32 txHash,uint256 amount)"
+                "refundUSDT(address caller,address to,bytes txHash,uint256 amount)"
             )
         );
 
@@ -66,7 +66,7 @@ contract OmnichainSwapProxy is
         uint256 indexed eventIndex,
         address indexed user,
         address indexed srcToken,
-        bytes32 dstToken,
+        bytes dstToken,
         uint256 orderId,
         bytes32 to,
         uint256 srcAmount,
@@ -82,7 +82,7 @@ contract OmnichainSwapProxy is
         uint256 fromChainId,
         uint256 amount,
         uint256 amountOut,
-        bytes32 txHash
+        bytes txHash
     );
 
     event SendTokenToByUser(
@@ -103,7 +103,7 @@ contract OmnichainSwapProxy is
         address to,
         uint256 amount,
         uint256 fromChainId,
-        bytes32 txHash
+        bytes txHash
     );
 
     event ForwardToUniswap(
@@ -122,7 +122,7 @@ contract OmnichainSwapProxy is
         address indexed caller,
         address indexed to,
         uint256 amount,
-        bytes32 txHash
+        bytes txHash
     );
 
     event SignerAdded(address indexed caller, address indexed account);
@@ -369,7 +369,7 @@ contract OmnichainSwapProxy is
         address to,
         uint256 amount,
         uint256 fromChainId,
-        bytes32 txHash,
+        bytes memory txHash,
         bytes[] calldata signatures
     ) external whenNotPaused {
         if (usedHash[txHash]) {
@@ -424,7 +424,7 @@ contract OmnichainSwapProxy is
 
     function refundUSDT(
         address to,
-        bytes32 txHash,
+        bytes memory txHash,
         uint256 amount,
         bytes[] calldata signatures
     ) external {
@@ -582,7 +582,7 @@ contract OmnichainSwapProxy is
         address dstToken,
         uint256 amount,
         uint256 fromChainId,
-        bytes32 txHash
+        bytes memory txHash
     ) public view returns (bytes32) {
         return
             keccak256(
@@ -610,7 +610,7 @@ contract OmnichainSwapProxy is
         address to,
         uint256 amount,
         uint256 fromChainId,
-        bytes32 txHash
+        bytes memory txHash
     ) public view returns (bytes32) {
         return
             keccak256(
@@ -635,7 +635,7 @@ contract OmnichainSwapProxy is
     function buildRefundUSDTSeparator(
         address caller,
         address to,
-        bytes32 txHash,
+        bytes memory txHash,
         uint256 amount
     ) public view returns (bytes32) {
         return

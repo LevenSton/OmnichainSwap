@@ -16,7 +16,7 @@ abstract contract OmnichainSwapStorage {
     address[] public signers;
     mapping(address => bool) public authorized;
     mapping(address => uint256) public indexes;
-    mapping(bytes32 => bool) public usedHash;
+    mapping(bytes => bool) public usedHash;
 
     mapping(address => mapping(uint256 => address)) whitelistTokens;
     uint256 public eventIndex;
