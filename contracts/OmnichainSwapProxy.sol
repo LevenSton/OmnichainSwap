@@ -1,17 +1,17 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.17;
+pragma solidity 0.8.28;
 
-import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
+import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {OmnichainSwapStorage} from "./OmnichainSwapStorage.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {OmnichainSwapStorage} from "./OmnichainSwapStorage.sol";
 
 contract OmnichainSwapProxy is
-    Pausable,
-    ReentrancyGuard,
-    Ownable,
+    PausableUpgradeable,
+    ReentrancyGuardUpgradeable,
+    OwnableUpgradeable,
     OmnichainSwapStorage
 {
     using SafeERC20 for IERC20;
@@ -20,13 +20,8 @@ contract OmnichainSwapProxy is
 
     error NotWhitelistedToken();
     error InvalidParam();
-    error InvalidSignatureLength();
-    error InvalidSignature();
     error UsedHash();
     error TransferFailed();
-    error AlreadyExist();
-    error NotExist();
-    error DuplicatedSignature();
     error NotRelayer();
 
     event SendTokenToByUser(
@@ -62,13 +57,26 @@ contract OmnichainSwapProxy is
     }
 
     /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor(address relayer_) Ownable(msg.sender) {
+    constructor() {
+        _disableInitializers();
+    }
+
+    function initialize(
+        address _initialOwner,
+        address _relayer
+    ) external initializer {
+        if (_initialOwner == address(0) || _relayer == address(0)) {
+            revert InvalidParam();
+        }
         uint256 chainId;
         assembly {
             chainId := chainid()
         }
+        __Pausable_init();
+        __ReentrancyGuard_init();
+        __Ownable_init(_initialOwner);
         CHAIN_ID = chainId;
-        relayer = relayer_;
+        relayer = _relayer;
     }
 
     modifier onlyRelayer() {
