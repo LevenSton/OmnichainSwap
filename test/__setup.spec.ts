@@ -81,12 +81,11 @@ before(async function () {
   omnichainSwapProxyContract = OmnichainSwapProxy__factory.connect(proxyAddress)
   omnichainSwapProxyAddress = await omnichainSwapProxyContract.getAddress();
 
-  await expect(omnichainSwapProxyContract.connect(user).withdrawTokens(_usdt)).to.be.revertedWithCustomError(omnichainSwapProxyContract, ERRORS.OwnableUnauthorizedAccount);
-  await expect(omnichainSwapProxyContract.connect(user).withdrawEth()).to.be.revertedWithCustomError(omnichainSwapProxyContract, ERRORS.OwnableUnauthorizedAccount);
+  await expect(omnichainSwapProxyContract.connect(user).withdrawTokens(_usdt, userAddress, 0)).to.be.revertedWithCustomError(omnichainSwapProxyContract, ERRORS.OwnableUnauthorizedAccount);
+  await expect(omnichainSwapProxyContract.connect(user).withdrawEth(userAddress, 0)).to.be.revertedWithCustomError(omnichainSwapProxyContract, ERRORS.OwnableUnauthorizedAccount);
   await expect(omnichainSwapProxyContract.connect(user).emergePause()).to.be.revertedWithCustomError(omnichainSwapProxyContract, ERRORS.OwnableUnauthorizedAccount);
   await expect(omnichainSwapProxyContract.connect(user).unPause()).to.be.revertedWithCustomError(omnichainSwapProxyContract, ERRORS.OwnableUnauthorizedAccount);
-  await expect(omnichainSwapProxyContract.connect(user).addSigner(userAddress)).to.be.revertedWithCustomError(omnichainSwapProxyContract, ERRORS.OwnableUnauthorizedAccount);
-  await expect(omnichainSwapProxyContract.connect(user).removeSigner(userAddress)).to.be.revertedWithCustomError(omnichainSwapProxyContract, ERRORS.OwnableUnauthorizedAccount);
+  await expect(omnichainSwapProxyContract.connect(user).setWhitelistToken(_usdt, true)).to.be.revertedWithCustomError(omnichainSwapProxyContract, ERRORS.OwnableUnauthorizedAccount);
 
   //create univ3 and v2 pool
   const nonfungiblePositionManagerAddress = "0x03a520b32C04BF3bEEf7BEb72E919cf822Ed34f1"
