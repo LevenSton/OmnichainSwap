@@ -7,7 +7,7 @@ const deployFn: DeployFunction = async (hre) => {
   const [deployer] = await ethers.getSigners();
   
   const omnichainSwapProxy = "";
-  const whitelistedToken = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
+  const whitelistedToken = "";
   const whitelisted = true;
   const tx = await OmnichainSwapProxy__factory.connect(omnichainSwapProxy, deployer).setWhitelistToken(whitelistedToken, whitelisted);
   await tx.wait();

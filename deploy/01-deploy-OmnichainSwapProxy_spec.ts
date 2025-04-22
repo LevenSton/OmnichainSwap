@@ -6,7 +6,7 @@ const deployFn: DeployFunction = async (hre) => {
   const [deployer] = await ethers.getSigners();
 
   const OmnichainSwapProxy = await ethers.getContractFactory("OmnichainSwapProxy");
-  const relayer = '0x71e0ed0b9ca04eb987d3ab26fa60d1d53440326b'
+  const relayer = ''
 
   const proxy = await upgrades.deployProxy(OmnichainSwapProxy, [deployer.address, relayer]);
   await proxy.waitForDeployment()
