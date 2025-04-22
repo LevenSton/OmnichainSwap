@@ -62,13 +62,13 @@ contract OmnichainSwapProxy is
     }
 
     /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor() Ownable(msg.sender) {
+    constructor(address relayer_) Ownable(msg.sender) {
         uint256 chainId;
         assembly {
             chainId := chainid()
         }
         CHAIN_ID = chainId;
-        relayer = msg.sender;
+        relayer = relayer_;
     }
 
     modifier onlyRelayer() {

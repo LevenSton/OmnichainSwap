@@ -21,8 +21,9 @@ const deployFn: DeployFunction = async (hre) => {
   // const _initialOwner = deployer.address
   // const _signers = ["0x19D1eC071E24479223e9432389694fbC242102A4"]
   const OmnichainSwapProxy = await ethers.getContractFactory("OmnichainSwapProxy");
+  const relayer = '0x71e0ed0b9ca04eb987d3ab26fa60d1d53440326b'
 
-  const proxy = await upgrades.deployProxy(OmnichainSwapProxy);
+  const proxy = await upgrades.deployProxy(OmnichainSwapProxy, [relayer]);
   await proxy.waitForDeployment()
   
   const proxyAddress = await proxy.getAddress()

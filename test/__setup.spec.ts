@@ -72,7 +72,7 @@ before(async function () {
   _permit2 = "0x000000000022D473030F116dDEE9F6B43aC78BA3"
 
   const OmnichainSwapProxy = await ethers.getContractFactory("OmnichainSwapProxy");
-  const omnichainSwapProxy = await upgrades.deployProxy(OmnichainSwapProxy, [_universalRouter, _usdt, _weth, _permit2, deployerAddress, [signer1Address, signer2Address]]);
+  const omnichainSwapProxy = await upgrades.deployProxy(OmnichainSwapProxy, [deployerAddress]);
   const proxyAddress = await omnichainSwapProxy.getAddress()
   console.log("proxy address: ", proxyAddress)
   console.log("admin address: ", await upgrades.erc1967.getAdminAddress(proxyAddress))
