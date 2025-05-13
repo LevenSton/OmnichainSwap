@@ -7,8 +7,9 @@ const deployFn: DeployFunction = async (hre) => {
 
   const OmnichainSwapProxy = await ethers.getContractFactory("OmnichainSwapProxy");
   const relayer = ''
+  const tomoRouter = ''
 
-  const proxy = await upgrades.deployProxy(OmnichainSwapProxy, [deployer.address, relayer]);
+  const proxy = await upgrades.deployProxy(OmnichainSwapProxy, [deployer.address, relayer, tomoRouter]);
   await proxy.waitForDeployment()
   
   const proxyAddress = await proxy.getAddress()
