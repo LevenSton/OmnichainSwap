@@ -7,6 +7,8 @@ import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/ut
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {OmnichainSwapStorage} from "./OmnichainSwapStorage.sol";
+import {DataTypes} from "./libraries/DataTypes.sol";
+import {IUniversalRouter} from "./interfaces/IUniversalRouter.sol";
 
 contract OmnichainSwapProxy is
     PausableUpgradeable,
@@ -14,6 +16,7 @@ contract OmnichainSwapProxy is
     OwnableUpgradeable,
     OmnichainSwapStorage
 {
+    uint256 constant TRANSFER = 0x05;
     using SafeERC20 for IERC20;
     address private constant NATIVE_ETH =
         0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
@@ -23,8 +26,11 @@ contract OmnichainSwapProxy is
     error UsedHash();
     error TransferFailed();
     error NotRelayer();
+    error FailedGetBackTokenFromTomoRouter();
+    error SwapFailedFromTomoRouter();
+    error SrcTokenBalanceNotCorrect();
 
-    event SendTokenToByUser(
+    event CrossChainSwapToByUser(
         uint256 indexed orderId,
         uint256 indexed eventIndex,
         address indexed user,
@@ -36,17 +42,20 @@ contract OmnichainSwapProxy is
         bytes dstToken
     );
 
-    event SendTokenToByProtocol(
+    event CrossChainSwapToByProtocol(
         uint256 indexed eventIndex,
         address indexed caller,
-        address indexed token,
+        address indexed srcToken,
+        address dstToken,
         address to,
         uint256 amount,
         uint256 fromChainId,
-        bytes txHash
+        bytes txHash,
+        bool success
     );
 
     event RelayerChanged(address indexed prevRelayer, address indexed newRelayer);
+    event TomoRouterChanged(address indexed prevTomoRouter, address indexed newTomoRouter);
     event TokenWhitelisted(address indexed token, bool indexed whitelisted);
 
     modifier isWhitelisted(address token) {
@@ -63,9 +72,10 @@ contract OmnichainSwapProxy is
 
     function initialize(
         address _initialOwner,
-        address _relayer
+        address _relayer,
+        address _tomoRouter
     ) external initializer {
-        if (_initialOwner == address(0) || _relayer == address(0)) {
+        if (_initialOwner == address(0) || _relayer == address(0) || _tomoRouter == address(0)) {
             revert InvalidParam();
         }
         uint256 chainId;
@@ -77,6 +87,7 @@ contract OmnichainSwapProxy is
         __Ownable_init(_initialOwner);
         CHAIN_ID = chainId;
         relayer = _relayer;
+        tomoRouter = _tomoRouter;
     }
 
     modifier onlyRelayer() {
@@ -86,67 +97,54 @@ contract OmnichainSwapProxy is
         _;
     }
 
-    function sendTokenToByUser(
-        uint256 orderId,
-        address token,
-        bytes32 to,
-        uint256 dstChainId,
-        bytes memory dstToken,
-        uint256 amount
-    ) external payable whenNotPaused isWhitelisted(token) {
-        if (to == bytes32(0) || dstChainId == CHAIN_ID || amount == 0) {
+    function crossChainSwapToByUser(
+        DataTypes.CrossChainSwapDataByUser calldata data
+    ) external payable whenNotPaused nonReentrant onlyRelayer isWhitelisted(data.srcToken) {
+        if (data.to == bytes32(0) || 
+            data.dstChainId == CHAIN_ID || 
+            data.amount == 0
+        ) {
             revert InvalidParam();
         }
-        if (msg.value > 0 && (token != NATIVE_ETH || amount != msg.value)) {
+        if (msg.value > 0 && (data.srcToken != NATIVE_ETH || data.amount != msg.value)) {
             revert InvalidParam();
         }
-        if (token != NATIVE_ETH) {
-            IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
+        if (data.srcToken != NATIVE_ETH) {
+            IERC20(data.srcToken).safeTransferFrom(msg.sender, address(this), data.amount);
         }
-        emit SendTokenToByUser(
-            orderId,
+        emit CrossChainSwapToByUser(
+            data.orderId,
             eventIndex++,
             msg.sender,
-            token,
-            to,
-            amount,
+            data.srcToken,
+            data.to,
+            data.amount,
             CHAIN_ID,
-            dstChainId,
-            dstToken
+            data.dstChainId,
+            data.dstToken
         );
     }
 
-    function sendTokenToByProtocol(
-        address token,
-        address to,
-        uint256 amount,
-        uint256 fromChainId,
-        bytes memory txHash
-    ) external whenNotPaused onlyRelayer {
-        if (usedHash[txHash]) {
-            revert UsedHash();
-        }
-        if (to == address(0)) {
+    function crossChainSwapToByProtocol(
+        DataTypes.CrossChainSwapDataByProtocol calldata data
+    ) external payable whenNotPaused nonReentrant isWhitelisted(data.srcToken) {
+        if (data.to == address(0) || 
+            data.fromChainId == CHAIN_ID || 
+            data.amount == 0
+        ) {
             revert InvalidParam();
         }
-        usedHash[txHash] = true;
-        if (token != NATIVE_ETH) {
-            IERC20(token).safeTransfer(to, amount);
-        } else {
-            (bool suc, ) = payable(to).call{value: amount}("");
-            if (!suc) {
-                revert TransferFailed();
-            }
+        if (usedHash[data.txHash]) {
+            revert UsedHash();
         }
-        emit SendTokenToByProtocol(
-            eventIndex++,
-            msg.sender,
-            token,
-            to,
-            amount,
-            fromChainId,
-            txHash
-        );
+        usedHash[data.txHash] = true;
+        // no need to swap, just send stable coin to user
+        if(data.srcToken == data.dstToken && data.routerCalldata.length == 0){
+            _sendTokenToUser(data);
+        }else if(data.srcToken != data.dstToken && data.routerCalldata.length != 0){
+            // need use stablecoin to swap to token and send to user
+            _swapTokenAndSendTo(data);
+        }
     }
 
     function withdrawTokens(address token, address to, uint256 amount) external onlyOwner {
@@ -179,11 +177,98 @@ contract OmnichainSwapProxy is
         emit RelayerChanged(prevRelayer, _relayer);
     }
 
+    function setTomoRouter(address _tomoRouter) external onlyOwner {
+        address prevTomoRouter = tomoRouter;
+        tomoRouter = _tomoRouter;
+        emit TomoRouterChanged(prevTomoRouter, tomoRouter);
+    }
+
     function emergePause() external onlyOwner {
         _pause();
     }
 
     function unPause() external onlyOwner {
         _unpause();
+    }
+
+    // private function
+    function _sendTokenToUser(DataTypes.CrossChainSwapDataByProtocol calldata data) private {
+        if (data.srcToken != NATIVE_ETH) {
+            IERC20(data.srcToken).safeTransfer(data.to, data.amount);
+        } else {
+            (bool suc, ) = payable(data.to).call{value: data.amount}("");
+            if (!suc) {
+                revert TransferFailed();
+            }
+        }
+        emit CrossChainSwapToByProtocol(
+            eventIndex++,
+            msg.sender,
+            data.srcToken,
+            data.dstToken,
+            data.to,
+            data.amount,
+            data.fromChainId,
+            data.txHash,
+            true
+        );
+    }
+
+    function _swapTokenAndSendTo(DataTypes.CrossChainSwapDataByProtocol calldata data) private {
+        uint256 beforeSrcTokenBalance = IERC20(data.srcToken).balanceOf(
+            address(this)
+        );
+        uint256 beforeDstTokenBalance = IERC20(data.dstToken).balanceOf(
+            address(this)
+        );
+        IERC20(data.srcToken).safeTransfer(tomoRouter, data.amount);
+        (bool success, ) = tomoRouter.call(data.routerCalldata);
+        bool swapSuccess = true;
+        // if swap failed, get back coin from tomo router contract
+        if (!success) {
+            bytes memory commands = abi.encodePacked(
+                bytes1(uint8(TRANSFER))
+            );
+            bytes[] memory inputs = new bytes[](1);
+            inputs[0] = abi.encode(data.srcToken, address(this), data.amount);
+            IUniversalRouter(tomoRouter).execute(commands, inputs);
+            uint256 afterSrcTokenBalance = IERC20(data.srcToken).balanceOf(
+                address(this)
+            );
+            // check balance correct
+            if(afterSrcTokenBalance != beforeSrcTokenBalance){
+                revert FailedGetBackTokenFromTomoRouter();
+            }
+            //send coin back to user as refund
+            IERC20(data.srcToken).safeTransfer(data.to, data.amount);
+            swapSuccess = false;
+        }else{
+            uint256 afterSrcTokenBalance = IERC20(data.srcToken).balanceOf(
+                address(this)
+            );
+            if(afterSrcTokenBalance - beforeSrcTokenBalance != data.amount){
+                revert SrcTokenBalanceNotCorrect();
+            }
+            uint256 afterDstTokenBalance = IERC20(data.dstToken).balanceOf(
+                address(this)
+            );
+            uint256 swapAmount = afterDstTokenBalance - beforeDstTokenBalance;
+            if(swapAmount == 0){
+                revert SwapFailedFromTomoRouter();
+            }
+            //send swap token to user after swap success.
+            IERC20(data.dstToken).safeTransfer(data.to, data.amount);
+        }
+        emit CrossChainSwapToByProtocol(
+            eventIndex++,
+            msg.sender,
+            data.srcToken,
+            data.dstToken,
+            data.to,
+            data.amount,
+            data.fromChainId,
+            data.txHash,
+            swapSuccess
+        );
     }
 }
