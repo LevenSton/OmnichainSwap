@@ -15,7 +15,7 @@ import { ethers, network } from 'hardhat';
 import { BYTES32_ZERO_ADDRESS, MAX_UINT256 } from '../helpers/constants';
 import { ERC20__factory } from '../../typechain-types';
 
-makeSuiteCleanRoom('Execute OmnichainSwap ', function () {
+makeSuiteCleanRoom('Execute OmnichainSwap crossChainSwapToByUser', function () {
     context('Generic', function () {
         const crossAmount = ethers.parseEther("1");
         const nowWhitelistERC20Token = '0x232a7a48d1dd946617d82fab36b46a30f69df4a3'
