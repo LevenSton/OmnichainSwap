@@ -13,3 +13,4 @@ export declare enum FeeAmount {
 }
 export const SOURCE_MSG_SENDER: boolean = true
 export const SOURCE_ROUTER: boolean = false
+export const MSG_SENDER: string = '0x0000000000000000000000000000000000000001'

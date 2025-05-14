@@ -49,6 +49,7 @@ contract OmnichainSwapProxy is
         address dstToken,
         address to,
         uint256 amount,
+        uint256 dstAmount,
         uint256 fromChainId,
         bytes txHash,
         bool success
@@ -210,6 +211,7 @@ contract OmnichainSwapProxy is
             data.dstToken,
             data.to,
             data.amount,
+            data.amount,
             data.fromChainId,
             data.txHash,
             true
@@ -226,6 +228,7 @@ contract OmnichainSwapProxy is
         IERC20(data.srcToken).safeTransfer(tomoRouter, data.amount);
         (bool success, ) = tomoRouter.call(data.routerCalldata);
         bool swapSuccess = true;
+        uint256 swapAmount = 0;
         // if swap failed, get back coin from tomo router contract
         if (!success) {
             bytes memory commands = abi.encodePacked(
@@ -254,7 +257,7 @@ contract OmnichainSwapProxy is
             uint256 afterDstTokenBalance = IERC20(data.dstToken).balanceOf(
                 address(this)
             );
-            uint256 swapAmount = afterDstTokenBalance - beforeDstTokenBalance;
+            swapAmount = afterDstTokenBalance - beforeDstTokenBalance;
             if(swapAmount == 0){
                 revert SwapFailedFromTomoRouter();
             }
@@ -268,6 +271,7 @@ contract OmnichainSwapProxy is
             data.dstToken,
             data.to,
             data.amount,
+            swapAmount,
             data.fromChainId,
             data.txHash,
             swapSuccess
