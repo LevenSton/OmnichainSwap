@@ -28,10 +28,20 @@ const config: HardhatUserConfig = {
   networks: {
     hardhat: {
       forking: {
-        url: "https://base-mainnet.g.alchemy.com/v2/4Iv_6-FcdIG3mzg0rr2Bk2r0ti5jl3vB",
-        blockNumber: 23204970,
+        url: "https://bnb-mainnet.g.alchemy.com/v2/ANAxZRbw8c4K6cGKOLRvJZqpWF0_jYtZ",
+        blockNumber: 49588702,
       },
       gas: 16000000,
+      accounts: [
+        {
+          privateKey: "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80", // 这是一个测试私钥，实际使用请替换
+          balance: "10000000000000000000" // 10 BNB (以 wei 为单位)
+        },
+        {
+          privateKey: "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d", // 这是一个测试私钥，实际使用请替换
+          balance: "10000000000000000000" // 10 BNB (以 wei 为单位)
+        }
+      ]
     },
     linea_testnet: {
       chainId: 59140,

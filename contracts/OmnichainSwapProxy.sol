@@ -99,7 +99,7 @@ contract OmnichainSwapProxy is
 
     function crossChainSwapToByUser(
         DataTypes.CrossChainSwapDataByUser calldata data
-    ) external payable whenNotPaused nonReentrant onlyRelayer isWhitelisted(data.srcToken) {
+    ) external payable whenNotPaused nonReentrant isWhitelisted(data.srcToken) {
         if (data.to == bytes32(0) || 
             data.dstChainId == CHAIN_ID || 
             data.amount == 0
@@ -127,7 +127,7 @@ contract OmnichainSwapProxy is
 
     function crossChainSwapToByProtocol(
         DataTypes.CrossChainSwapDataByProtocol calldata data
-    ) external payable whenNotPaused nonReentrant isWhitelisted(data.srcToken) {
+    ) external payable whenNotPaused nonReentrant onlyRelayer isWhitelisted(data.srcToken) {
         if (data.to == address(0) || 
             data.fromChainId == CHAIN_ID || 
             data.amount == 0
@@ -144,6 +144,8 @@ contract OmnichainSwapProxy is
         }else if(data.srcToken != data.dstToken && data.routerCalldata.length != 0){
             // need use stablecoin to swap to token and send to user
             _swapTokenAndSendTo(data);
+        }else{
+            revert InvalidParam();
         }
     }
 
