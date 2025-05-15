@@ -55,6 +55,7 @@ contract OmnichainSwapProxy is
 
     event RelayerChanged(address indexed prevRelayer, address indexed newRelayer);
     event TomoRouterChanged(address indexed prevTomoRouter, address indexed newTomoRouter);
+    event TomoProtocolChanged(address indexed prevTomoProtocol, address indexed newTomoProtocol);
     event TokenWhitelisted(address indexed token, bool indexed whitelisted);
     event EthWithdrawn(address indexed to, uint256 amount);
     event Erc20TokenWithdrawn(address indexed token, address indexed to, uint256 amount);
@@ -75,9 +76,11 @@ contract OmnichainSwapProxy is
     function initialize(
         address _initialOwner,
         address _relayer,
-        address _tomoRouter
+        address _tomoRouter,
+        address _tomoProtocol
     ) external initializer {
-        if (_initialOwner == address(0) || _relayer == address(0) || _tomoRouter == address(0)) {
+        if (_initialOwner == address(0) || _relayer == address(0) || 
+            _tomoRouter == address(0) || _tomoProtocol == address(0)) {
             revert InvalidParam();
         }
         uint256 chainId;
@@ -90,6 +93,7 @@ contract OmnichainSwapProxy is
         CHAIN_ID = chainId;
         relayer = _relayer;
         tomoRouter = _tomoRouter;
+        tomoProtocol = _tomoProtocol;
     }
 
     modifier onlyRelayer() {
@@ -193,6 +197,12 @@ contract OmnichainSwapProxy is
         emit TomoRouterChanged(prevTomoRouter, tomoRouter);
     }
 
+    function setTomoProtocol(address _tomoProtocol) external onlyOwner {
+        address prevTomoProtocol = tomoProtocol;
+        tomoProtocol = _tomoProtocol;
+        emit TomoProtocolChanged(prevTomoProtocol, tomoProtocol);
+    }
+
     function emergePause() external onlyOwner {
         _pause();
     }
@@ -228,7 +238,7 @@ contract OmnichainSwapProxy is
             address(this)
         );
         IERC20(data.srcToken).safeTransfer(tomoRouter, data.amount);
-        (bool success, ) = tomoRouter.call(data.routerCalldata);
+        (bool success, ) = tomoProtocol.call(data.routerCalldata);
         bool swapSuccess = true;
         uint256 swapAmount = 0;
         // if swap failed, get back coin from tomo router contract

@@ -7,6 +7,7 @@ abstract contract OmnichainSwapStorage {
     uint256 public eventIndex;
     address public relayer;
     address public tomoRouter;
+    address public tomoProtocol;
     mapping(bytes => bool) public usedHash;
     mapping(address => bool) public whitelistTokens;
 }
