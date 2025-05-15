@@ -5,7 +5,7 @@ export const BYTES32_ZERO_ADDRESS = '0x00000000000000000000000000000000000000000
 
 export const HARDHAT_CHAINID = 31337;
 
-export declare enum FeeAmount {
+export enum FeeAmount {
     LOWEST = 100,
     LOW = 500,
     MEDIUM = 3000,

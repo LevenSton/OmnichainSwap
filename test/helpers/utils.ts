@@ -35,6 +35,6 @@ export function encodePath(path: string[], fees: FeeAmount[]): string {
   return encoded.toLowerCase()
 }
 
-export function encodePathExactInput(tokens: string[]) {
-  return encodePath(tokens, new Array(tokens.length - 1).fill(500))
+export function encodePathExactInput(tokens: string[], fee: FeeAmount) {
+  return encodePath(tokens, new Array(tokens.length - 1).fill(fee))
 }

@@ -251,7 +251,7 @@ contract OmnichainSwapProxy is
             uint256 afterSrcTokenBalance = IERC20(data.srcToken).balanceOf(
                 address(this)
             );
-            if(afterSrcTokenBalance - beforeSrcTokenBalance != data.amount){
+            if(beforeSrcTokenBalance - afterSrcTokenBalance != data.amount){
                 revert SrcTokenBalanceNotCorrect();
             }
             uint256 afterDstTokenBalance = IERC20(data.dstToken).balanceOf(
