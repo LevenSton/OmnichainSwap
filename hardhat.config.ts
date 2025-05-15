@@ -34,11 +34,11 @@ const config: HardhatUserConfig = {
       gas: 16000000,
       accounts: [
         {
-          privateKey: "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80", // 这是一个测试私钥，实际使用请替换
+          privateKey: "0xadfb1c6c11c4c8cd7c6c0592344759ced4fd7c8486a048de52a8e8d3877a67f9", // 这是一个测试私钥，实际使用请替换
           balance: "10000000000000000000" // 10 BNB (以 wei 为单位)
         },
         {
-          privateKey: "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d", // 这是一个测试私钥，实际使用请替换
+          privateKey: "0x4e75d4cc93e17ad494e22b5df726661af328d2bcc11ace1490189580d555a7e9", // 这是一个测试私钥，实际使用请替换
           balance: "10000000000000000000" // 10 BNB (以 wei 为单位)
         }
       ]

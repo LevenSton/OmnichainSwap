@@ -257,6 +257,48 @@ makeSuiteCleanRoom('Execute OmnichainSwap crossChainSwapToByProtocol', function 
                     params: [bscBigHolder],
                 });
             });
+            it('Get correct variable when withdraw token success', async function () {
+                const USDT = ERC20__factory.connect(_usdt)
+                const bscBigHolder = '0x4B14BdC6c1CFD2eC9E947c31E12b8Cf6d26E3E75'
+                await network.provider.request({
+                    method: "hardhat_impersonateAccount",
+                    params: [bscBigHolder],
+                });
+                const whaleSigner = await ethers.getSigner(bscBigHolder);
+                const usdtContractWithWhale = USDT.connect(whaleSigner);
+                const tx = await usdtContractWithWhale.transfer(omnichainSwapProxyAddress, ethers.parseEther("10000"));
+                await tx.wait();
+
+                const beforeProxyUSDTBalance = await USDT.connect(deployer).balanceOf(omnichainSwapProxyAddress);
+                const userUSDTBalance = await USDT.connect(deployer).balanceOf(userAddress);
+                await expect(omnichainSwapProxyContract.connect(deployer).withdrawTokens(_usdt, userAddress, crossAmount)).to.be.not.reverted
+                const afterUserUSDTBalance = await USDT.connect(user).balanceOf(userAddress);
+                const afterProxyBalance = await USDT.connect(user).balanceOf(omnichainSwapProxyAddress);
+                expect(beforeProxyUSDTBalance - afterProxyBalance).eq(crossAmount)
+                expect(afterUserUSDTBalance - userUSDTBalance).eq(crossAmount)
+                
+                await network.provider.request({
+                    method: "hardhat_stopImpersonatingAccount",
+                    params: [bscBigHolder],
+                });
+            });
+            it('Get correct variable when withdraw native token success', async function () {
+                const tx = await user.sendTransaction({
+                    to: omnichainSwapProxyAddress,
+                    value: ethers.parseEther("2")
+                })
+                await tx.wait();
+                const beforeProxyNativeBalance = await ethers.provider.getBalance(omnichainSwapProxyAddress);
+                const beforeDeployerNativeBalance = await ethers.provider.getBalance(deployerAddress);
+                console.log("beforeProxyNativeBalance: ", beforeProxyNativeBalance)
+                console.log("beforeDeployerNativeBalance: ", beforeDeployerNativeBalance)
+                await expect(omnichainSwapProxyContract.connect(deployer).withdrawEth(deployerAddress, ethers.parseEther("1"))).to.be.not.reverted
+                const afterProxyNativeBalance = await ethers.provider.getBalance(omnichainSwapProxyAddress);
+                const afterDeployerNativeBalance = await ethers.provider.getBalance(deployerAddress);
+                console.log("afterProxyNativeBalance: ", afterProxyNativeBalance)
+                console.log("afterDeployerNativeBalance: ", afterDeployerNativeBalance)
+                expect(beforeProxyNativeBalance - afterProxyNativeBalance).eq(ethers.parseEther("1"))
+            });
         })
     })
 })

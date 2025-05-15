@@ -56,6 +56,8 @@ contract OmnichainSwapProxy is
     event RelayerChanged(address indexed prevRelayer, address indexed newRelayer);
     event TomoRouterChanged(address indexed prevTomoRouter, address indexed newTomoRouter);
     event TokenWhitelisted(address indexed token, bool indexed whitelisted);
+    event EthWithdrawn(address indexed to, uint256 amount);
+    event Erc20TokenWithdrawn(address indexed token, address indexed to, uint256 amount);
 
     //only stable coin is in whitelist. eg: USDT/USDC
     modifier isWhitelisted(address token) {
@@ -148,11 +150,15 @@ contract OmnichainSwapProxy is
     }
 
     function withdrawTokens(address token, address to, uint256 amount) external onlyOwner {
+        if(token == address(0) || to == address(0) || amount == 0){
+            revert InvalidParam();
+        }
         uint256 balance = IERC20(token).balanceOf(address(this));
         if (amount > balance) {
             revert TransferFailed();
         }
         IERC20(token).safeTransfer(to, amount);
+        emit Erc20TokenWithdrawn(token, to, amount);
     }
 
     function setWhitelistToken(address token, bool whitelisted) external onlyOwner {
@@ -161,6 +167,9 @@ contract OmnichainSwapProxy is
     }
 
     function withdrawEth(address to, uint256 amount) external onlyOwner {
+        if(to == address(0) || amount == 0){
+            revert InvalidParam();
+        }
         uint256 balance = address(this).balance;
         if (amount > balance) {
             revert TransferFailed();
@@ -169,6 +178,7 @@ contract OmnichainSwapProxy is
         if (!suc) {
             revert TransferFailed();
         }
+        emit EthWithdrawn(to, amount);
     }
 
     function setRelayer(address _relayer) external onlyOwner {
@@ -190,6 +200,8 @@ contract OmnichainSwapProxy is
     function unPause() external onlyOwner {
         _unpause();
     }
+
+    receive() external payable {}
 
     // private function
     function _sendTokenToUser(DataTypes.CrossChainSwapDataByProtocol calldata data) private {
