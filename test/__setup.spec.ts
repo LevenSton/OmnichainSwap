@@ -49,7 +49,6 @@ before(async function () {
   userAddress = await user.getAddress();
   _tomoSwapRouter = "0x1628d966d33b32f9a97ef7bB773546e363C19b26";
   _usdt = "0x55d398326f99059fF775485246999027B3197955"
-  _native = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"
 
   const OmnichainSwapProxy = await ethers.getContractFactory("OmnichainSwapProxy");
   const omnichainSwapProxy = await upgrades.deployProxy(OmnichainSwapProxy, [deployerAddress, deployerAddress, _tomoSwapRouter]);
@@ -71,13 +70,8 @@ before(async function () {
   await expect(omnichainSwapProxyContract.connect(user).setRelayer(_usdt)).to.be.revertedWithCustomError(omnichainSwapProxyContract, ERRORS.OwnableUnauthorizedAccount);
 
   const isUsdtWhitelist = await omnichainSwapProxyContract.connect(deployer).whitelistTokens(_usdt);
-  const isNativeWhitelist = await omnichainSwapProxyContract.connect(deployer).whitelistTokens(_native);
   expect(isUsdtWhitelist).to.be.equal(false);
-  expect(isNativeWhitelist).to.be.equal(false);
   await expect(omnichainSwapProxyContract.connect(deployer).setWhitelistToken(_usdt, true)).to.be.not.reverted
-  await expect(omnichainSwapProxyContract.connect(deployer).setWhitelistToken(_native, true)).to.be.not.reverted
   const afterIsUsdtWhitelist = await omnichainSwapProxyContract.connect(deployer).whitelistTokens(_usdt);
-  const afterIsNativeWhitelist = await omnichainSwapProxyContract.connect(deployer).whitelistTokens(_native);
   expect(afterIsUsdtWhitelist).to.be.equal(true);
-  expect(afterIsNativeWhitelist).to.be.equal(true);
 });

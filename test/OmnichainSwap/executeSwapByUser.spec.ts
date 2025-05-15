@@ -75,26 +75,6 @@ makeSuiteCleanRoom('Execute OmnichainSwap crossChainSwapToByUser', function () {
                     amount: 0
                 })).to.be.revertedWithCustomError(omnichainSwapProxyContract, ERRORS.InvalidParam);
             });
-            it('User should fail to crossChainSwapToByUser if msg.value not correct',   async function () {
-                await expect(omnichainSwapProxyContract.connect(user).crossChainSwapToByUser({
-                    orderId: 1,
-                    srcToken: _native,
-                    dstToken: "0xa234",
-                    to: ethers.zeroPadValue(userAddress, 32),
-                    dstChainId: 8453,
-                    amount: 1000
-                }, {value: crossAmount})).to.be.revertedWithCustomError(omnichainSwapProxyContract, ERRORS.InvalidParam);
-            });
-            it('User should fail to crossChainSwapToByUser if msg.value not correct',   async function () {
-                await expect(omnichainSwapProxyContract.connect(user).crossChainSwapToByUser({
-                    orderId: 1,
-                    srcToken: _usdt,
-                    dstToken: "0xa234",
-                    to: ethers.zeroPadValue(userAddress, 32),
-                    dstChainId: 8453,
-                    amount: crossAmount
-                }, {value: crossAmount})).to.be.revertedWithCustomError(omnichainSwapProxyContract, ERRORS.InvalidParam);
-            });
         })
 
         context('Scenarios', function () {
@@ -130,19 +110,6 @@ makeSuiteCleanRoom('Execute OmnichainSwap crossChainSwapToByUser', function () {
                     method: "hardhat_stopImpersonatingAccount",
                     params: [bscBigHolder],
                 });
-            });
-            it('Get correct variable if crossChainSwapToByUser native success', async function () {
-                const beforeNativeBalance = await ethers.provider.getBalance(omnichainSwapProxyAddress)
-                await expect(omnichainSwapProxyContract.connect(user).crossChainSwapToByUser({
-                    orderId: 1,
-                    srcToken: _native,
-                    dstToken: "0xa234",
-                    to: ethers.zeroPadValue(userAddress, 32),
-                    dstChainId: 8453,
-                    amount: crossAmount
-                }, {value: crossAmount})).to.be.not.reverted
-                const afterNativeBalance = await ethers.provider.getBalance(omnichainSwapProxyAddress)
-                expect(afterNativeBalance - beforeNativeBalance).eq(crossAmount)
             });
         })
     })

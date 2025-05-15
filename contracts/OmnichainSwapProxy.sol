@@ -18,8 +18,6 @@ contract OmnichainSwapProxy is
 {
     uint256 constant TRANSFER = 0x05;
     using SafeERC20 for IERC20;
-    address private constant NATIVE_ETH =
-        0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
     error NotWhitelistedToken();
     error InvalidParam();
@@ -59,6 +57,7 @@ contract OmnichainSwapProxy is
     event TomoRouterChanged(address indexed prevTomoRouter, address indexed newTomoRouter);
     event TokenWhitelisted(address indexed token, bool indexed whitelisted);
 
+    //only stable coin is in whitelist. eg: USDT/USDC
     modifier isWhitelisted(address token) {
         if (!whitelistTokens[token]) {
             revert NotWhitelistedToken();
@@ -98,21 +97,19 @@ contract OmnichainSwapProxy is
         _;
     }
 
+    /** User user stable coin to swap meme token on dst chain.
+     *  only can use stable coin in phase1, USDT/USDC
+     */
     function crossChainSwapToByUser(
         DataTypes.CrossChainSwapDataByUser calldata data
-    ) external payable whenNotPaused nonReentrant isWhitelisted(data.srcToken) {
+    ) external whenNotPaused nonReentrant isWhitelisted(data.srcToken) {
         if (data.to == bytes32(0) || 
             data.dstChainId == CHAIN_ID || 
             data.amount == 0
         ) {
             revert InvalidParam();
         }
-        if (msg.value > 0 && (data.srcToken != NATIVE_ETH || data.amount != msg.value)) {
-            revert InvalidParam();
-        }
-        if (data.srcToken != NATIVE_ETH) {
-            IERC20(data.srcToken).safeTransferFrom(msg.sender, address(this), data.amount);
-        }
+        IERC20(data.srcToken).safeTransferFrom(msg.sender, address(this), data.amount);
         emit CrossChainSwapToByUser(
             data.orderId,
             eventIndex++,
@@ -196,14 +193,7 @@ contract OmnichainSwapProxy is
 
     // private function
     function _sendTokenToUser(DataTypes.CrossChainSwapDataByProtocol calldata data) private {
-        if (data.srcToken != NATIVE_ETH) {
-            IERC20(data.srcToken).safeTransfer(data.to, data.amount);
-        } else {
-            (bool suc, ) = payable(data.to).call{value: data.amount}("");
-            if (!suc) {
-                revert TransferFailed();
-            }
-        }
+        IERC20(data.srcToken).safeTransfer(data.to, data.amount);
         emit CrossChainSwapToByProtocol(
             eventIndex++,
             msg.sender,
