@@ -264,7 +264,7 @@ contract OmnichainSwapProxy is
                 revert SwapFailedFromTomoRouter();
             }
             //send swap token to user after swap success.
-            IERC20(data.dstToken).safeTransfer(data.to, data.amount);
+            IERC20(data.dstToken).safeTransfer(data.to, swapAmount);
         }
         emit CrossChainSwapToByProtocol(
             eventIndex++,
