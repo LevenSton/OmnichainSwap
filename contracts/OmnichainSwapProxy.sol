@@ -68,14 +68,9 @@ contract OmnichainSwapProxy is
         if (_initialOwner == address(0) || _relayer == address(0)) {
             revert InvalidParam();
         }
-        uint256 chainId;
-        assembly {
-            chainId := chainid()
-        }
         __Pausable_init();
         __ReentrancyGuard_init();
         __Ownable_init(_initialOwner);
-        CHAIN_ID = chainId;
         relayer = _relayer;
     }
 
@@ -94,7 +89,7 @@ contract OmnichainSwapProxy is
         bytes memory dstToken,
         uint256 amount
     ) external payable whenNotPaused isWhitelisted(token) {
-        if (to == bytes32(0) || dstChainId == CHAIN_ID || amount == 0) {
+        if (to == bytes32(0) || dstChainId == block.chainid || amount == 0) {
             revert InvalidParam();
         }
         if(token != NATIVE_ETH && msg.value > 0){
@@ -113,7 +108,7 @@ contract OmnichainSwapProxy is
             token,
             to,
             amount,
-            CHAIN_ID,
+            block.chainid,
             dstChainId,
             dstToken
         );
