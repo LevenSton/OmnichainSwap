@@ -97,10 +97,10 @@ contract OmnichainSwapProxy is
         if (to == bytes32(0) || dstChainId == CHAIN_ID || amount == 0) {
             revert InvalidParam();
         }
-        if (msg.value > 0 && (token != NATIVE_ETH || amount != msg.value)) {
+        if(token != NATIVE_ETH && msg.value > 0){
             revert InvalidParam();
         }
-        if(msg.value == 0 && token == NATIVE_ETH){
+        if(token == NATIVE_ETH && msg.value != amount){
             revert InvalidParam();
         }
         if (token != NATIVE_ETH) {
