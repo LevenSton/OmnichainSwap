@@ -47,10 +47,10 @@ contract OmnichainSwapProxy is
     );
 
     event RelayerChanged(address indexed prevRelayer, address indexed newRelayer);
-    event TokenWhitelisted(address indexed token, bool indexed whitelisted);
+    event TokenWhitelisted(address indexed srcToken, uint256 indexed dstChainId, bytes indexed dstToken);
 
-    modifier isWhitelisted(address token) {
-        if (!whitelistTokens[token]) {
+    modifier isWhitelisted(address token, uint256 dstChainId) {
+        if (whitelistTokens[token][dstChainId].length == 0) {
             revert NotWhitelistedToken();
         }
         _;
@@ -86,9 +86,8 @@ contract OmnichainSwapProxy is
         address token,
         bytes32 to,
         uint256 dstChainId,
-        bytes memory dstToken,
         uint256 amount
-    ) external payable whenNotPaused isWhitelisted(token) {
+    ) external payable whenNotPaused isWhitelisted(token, dstChainId) {
         if (to == bytes32(0) || dstChainId == block.chainid || amount == 0) {
             revert InvalidParam();
         }
@@ -101,6 +100,7 @@ contract OmnichainSwapProxy is
         if (token != NATIVE_ETH) {
             IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
         }
+        bytes memory dstToken = whitelistTokens[token][dstChainId];
         emit SendTokenToByUser(
             orderId,
             eventIndex++,
@@ -155,9 +155,20 @@ contract OmnichainSwapProxy is
         IERC20(token).safeTransfer(to, amount);
     }
 
-    function setWhitelistToken(address token, bool whitelisted) external onlyOwner {
-        whitelistTokens[token] = whitelisted;
-        emit TokenWhitelisted(token, whitelisted);
+    function setWhitelistToken(address[] calldata tokens, uint256[] calldata chainIds, bytes[] calldata dstTokens) external onlyOwner {
+        if(tokens.length == 0 || tokens.length != chainIds.length || chainIds.length != dstTokens.length){
+            revert InvalidParam();
+        }
+        for(uint256 i = 0; i < tokens.length; i++){
+            address srcToken = tokens[i];
+            uint256 dstChainId = chainIds[i];
+            bytes calldata dstToken = dstTokens[i];
+            if(srcToken == address(0) || dstToken.length == 0){
+                revert InvalidParam();
+            }
+            whitelistTokens[srcToken][dstChainId] = dstToken;
+            emit TokenWhitelisted(srcToken, dstChainId, dstToken);
+        }
     }
 
     function withdrawEth(address to, uint256 amount) external onlyOwner {
