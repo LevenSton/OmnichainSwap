@@ -100,6 +100,9 @@ contract OmnichainSwapProxy is
         if (msg.value > 0 && (token != NATIVE_ETH || amount != msg.value)) {
             revert InvalidParam();
         }
+        if(msg.value == 0 && token == NATIVE_ETH){
+            revert InvalidParam();
+        }
         if (token != NATIVE_ETH) {
             IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
         }
