@@ -177,6 +177,9 @@ contract OmnichainSwapProxy is
     }
 
     function setRelayer(address _relayer) external onlyOwner {
+        if(_relayer == address(0)){
+            revert InvalidParam();
+        }
         address prevRelayer = relayer;
         relayer = _relayer;
         emit RelayerChanged(prevRelayer, _relayer);
