@@ -221,7 +221,7 @@ contract OmnichainSwapProxy is
         );
     }
 
-    function getContractBalance(address dstToken) private view returns (uint256) {
+    function _getContractBalance(address dstToken) private view returns (uint256) {
         uint256 beforeDstTokenBalance;
         if(dstToken == NATIVE_ETH){
             beforeDstTokenBalance = address(this).balance;
@@ -231,7 +231,7 @@ contract OmnichainSwapProxy is
         return beforeDstTokenBalance;
     }
 
-    function sendTokenToUser(address dstToken, address to, uint256 amount) private {
+    function _sendTokenToUser(address dstToken, address to, uint256 amount) private {
         if(dstToken == NATIVE_ETH){
             (bool suc, ) = payable(to).call{value: amount}("");
             if (!suc) {
@@ -246,7 +246,7 @@ contract OmnichainSwapProxy is
         uint256 beforeSrcTokenBalance = IERC20(data.srcToken).balanceOf(
             address(this)
         );
-        uint256 beforeDstTokenBalance = getContractBalance(data.dstToken);
+        uint256 beforeDstTokenBalance = _getContractBalance(data.dstToken);
         IERC20(data.srcToken).safeTransfer(tomoRouter, data.amount);
         (bool success, ) = tomoRouter.call(data.routerCalldata);
         bool swapSuccess = true;
@@ -276,13 +276,13 @@ contract OmnichainSwapProxy is
             if(beforeSrcTokenBalance - afterSrcTokenBalance != data.amount){
                 revert SrcTokenBalanceNotCorrect();
             }
-            uint256 afterDstTokenBalance = getContractBalance(data.dstToken);
+            uint256 afterDstTokenBalance = _getContractBalance(data.dstToken);
             swapAmount = afterDstTokenBalance - beforeDstTokenBalance;
             if(swapAmount == 0){
                 revert SwapFailedFromTomoRouter();
             }
             //send swap token to user after swap success.
-            sendTokenToUser(data.dstToken, data.to, swapAmount);
+            _sendTokenToUser(data.dstToken, data.to, swapAmount);
         }
         emit CrossChainSwapToByProtocol(
             eventIndex++,
