@@ -17,6 +17,7 @@ contract OmnichainSwapProxy is
     OmnichainSwapStorage
 {
     uint256 constant TRANSFER = 0x05;
+    address private constant NATIVE_ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
     using SafeERC20 for IERC20;
 
     error NotWhitelistedToken();
@@ -230,13 +231,32 @@ contract OmnichainSwapProxy is
         );
     }
 
+    function _getContractBalance(address dstToken) private view returns (uint256) {
+        uint256 beforeDstTokenBalance;
+        if(dstToken == NATIVE_ETH){
+            beforeDstTokenBalance = address(this).balance;
+        }else{ 
+            beforeDstTokenBalance = IERC20(dstToken).balanceOf(address(this));
+        }
+        return beforeDstTokenBalance;
+    }
+
+    function _sendTokenToUser(address dstToken, address to, uint256 amount) private {
+        if(dstToken == NATIVE_ETH){
+            (bool suc, ) = payable(to).call{value: amount}("");
+            if (!suc) {
+                revert TransferFailed();
+            }
+        }else{ 
+            IERC20(dstToken).safeTransfer(to, amount);
+        }
+    }
+
     function _swapTokenAndSendTo(DataTypes.CrossChainSwapDataByProtocol calldata data) private {
         uint256 beforeSrcTokenBalance = IERC20(data.srcToken).balanceOf(
             address(this)
         );
-        uint256 beforeDstTokenBalance = IERC20(data.dstToken).balanceOf(
-            address(this)
-        );
+        uint256 beforeDstTokenBalance = _getContractBalance(data.dstToken);
         IERC20(data.srcToken).safeTransfer(tomoRouter, data.amount);
         (bool success, ) = tomoProtocol.call(data.routerCalldata);
         bool swapSuccess = true;
@@ -266,15 +286,13 @@ contract OmnichainSwapProxy is
             if(beforeSrcTokenBalance - afterSrcTokenBalance != data.amount){
                 revert SrcTokenBalanceNotCorrect();
             }
-            uint256 afterDstTokenBalance = IERC20(data.dstToken).balanceOf(
-                address(this)
-            );
+            uint256 afterDstTokenBalance = _getContractBalance(data.dstToken);
             swapAmount = afterDstTokenBalance - beforeDstTokenBalance;
             if(swapAmount == 0){
                 revert SwapFailedFromTomoRouter();
             }
             //send swap token to user after swap success.
-            IERC20(data.dstToken).safeTransfer(data.to, swapAmount);
+            _sendTokenToUser(data.dstToken, data.to, swapAmount);
         }
         emit CrossChainSwapToByProtocol(
             eventIndex++,
