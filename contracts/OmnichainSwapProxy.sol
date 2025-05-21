@@ -93,16 +93,11 @@ contract OmnichainSwapProxy is
         uint256 dstChainId,
         bytes memory dstToken,
         uint256 amount
-    ) external payable whenNotPaused isWhitelisted(token) {
+    ) external whenNotPaused isWhitelisted(token) {
         if (to == bytes32(0) || dstChainId == CHAIN_ID || amount == 0) {
             revert InvalidParam();
         }
-        if (msg.value > 0 && (token != NATIVE_ETH || amount != msg.value)) {
-            revert InvalidParam();
-        }
-        if (token != NATIVE_ETH) {
-            IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
-        }
+        IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
         emit SendTokenToByUser(
             orderId,
             eventIndex++,
