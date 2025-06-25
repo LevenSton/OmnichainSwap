@@ -72,6 +72,10 @@ contract OmnichainSwapProxy is
         address indexed to,
         uint256 amount
     );
+    event WithdrawerChanged(
+        address indexed prevWithdrawer,
+        address indexed newWithdrawer
+    );
 
     //only stable coin is in whitelist. eg: USDT/USDC
     modifier isWhitelisted(address token) {
@@ -244,6 +248,12 @@ contract OmnichainSwapProxy is
         address prevTomoRouter = tomoRouter;
         tomoRouter = _tomoRouter;
         emit TomoRouterChanged(prevTomoRouter, tomoRouter);
+    }
+
+    function setWithdrawer(address _withdrawer) external onlyOwner {
+        address prevWithdrawer = withdrawer;
+        withdrawer = _withdrawer;
+        emit WithdrawerChanged(prevWithdrawer, _withdrawer);
     }
 
     function emergePause() external onlyOwner {
