@@ -236,17 +236,26 @@ contract OmnichainSwapProxy is
         address _relayer,
         uint256 _amount
     ) external onlyOwner {
+        if (_relayer == address(0) || _amount == 0) {
+            revert InvalidParam();
+        }
         relayerApprovalAmount[_relayer] = _amount;
         emit RelayerApprovalAmountChanged(_relayer, _amount);
     }
 
     function setTomoRouter(address _tomoRouter) external onlyOwner {
+        if (_tomoRouter == address(0)) {
+            revert InvalidParam();
+        }
         address prevTomoRouter = tomoRouter;
         tomoRouter = _tomoRouter;
         emit TomoRouterChanged(prevTomoRouter, tomoRouter);
     }
 
     function setWithdrawer(address _withdrawer) external onlyOwner {
+        if (_withdrawer == address(0)) {
+            revert InvalidParam();
+        }
         address prevWithdrawer = withdrawer;
         withdrawer = _withdrawer;
         emit WithdrawerChanged(prevWithdrawer, _withdrawer);
@@ -293,7 +302,7 @@ contract OmnichainSwapProxy is
         return beforeDstTokenBalance;
     }
 
-    function _sendTokenToUser(
+    function _sendDstTokenToUser(
         address dstToken,
         address to,
         uint256 amount
@@ -348,7 +357,7 @@ contract OmnichainSwapProxy is
                 revert SwapFailedFromTomoRouter();
             }
             //send swap token to user after swap success.
-            _sendTokenToUser(data.dstToken, data.to, swapAmount);
+            _sendDstTokenToUser(data.dstToken, data.to, swapAmount);
         }
         emit CrossChainSwapToByProtocol(
             eventIndex++,
