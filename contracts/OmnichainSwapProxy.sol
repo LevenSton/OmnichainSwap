@@ -25,8 +25,7 @@ contract OmnichainSwapProxy is
     error InvalidParam();
     error UsedHash();
     error TransferFailed();
-    error NotRelayer();
-    error InsufficientApproval();
+    error NotRelayerOrInsufficientApproval();
     error NotWithdrawer();
     error FailedGetBackTokenFromTomoRouter();
     error SwapFailedFromTomoRouter();
@@ -114,9 +113,9 @@ contract OmnichainSwapProxy is
         tomoRouter = _tomoRouter;
     }
 
-    modifier onlyRelayer(address _relayer) {
-        if (relayerApprovalAmount[_relayer] == 0) {
-            revert NotRelayer();
+    modifier onlyRelayer(address _relayer, uint256 _amount) {
+        if (relayerApprovalAmount[_relayer] < _amount) {
+            revert NotRelayerOrInsufficientApproval();
         }
         _;
     }
@@ -166,7 +165,7 @@ contract OmnichainSwapProxy is
         payable
         whenNotPaused
         nonReentrant
-        onlyRelayer(msg.sender)
+        onlyRelayer(msg.sender, data.amount)
         isWhitelisted(data.srcToken)
     {
         if (
@@ -178,9 +177,6 @@ contract OmnichainSwapProxy is
         }
         if (usedHash[data.txHash]) {
             revert UsedHash();
-        }
-        if (relayerApprovalAmount[msg.sender] < data.amount) {
-            revert InsufficientApproval();
         }
         usedHash[data.txHash] = true;
         relayerApprovalAmount[msg.sender] -= data.amount;
