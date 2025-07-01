@@ -171,6 +171,7 @@ contract OmnichainSwapProxy is
         if (
             data.to == address(0) ||
             data.fromChainId == CHAIN_ID ||
+            data.dstChainId != CHAIN_ID ||
             data.amount == 0
         ) {
             revert InvalidParam();

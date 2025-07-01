@@ -17,6 +17,7 @@ library DataTypes {
         address to;
         uint256 amount;
         uint256 fromChainId;
+        uint256 dstChainId;
         bytes txHash;
         bytes routerCalldata;
     }
