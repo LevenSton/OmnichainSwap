@@ -30,6 +30,7 @@ contract OmnichainSwapProxy is
     error FailedGetBackTokenFromTomoRouter();
     error SwapFailedFromTomoRouter();
     error SrcTokenBalanceNotCorrect();
+    error SignatureInvalid();
 
     event CrossChainSwapToByUser(
         uint256 indexed orderId,
@@ -75,6 +76,11 @@ contract OmnichainSwapProxy is
         address indexed prevWithdrawer,
         address indexed newWithdrawer
     );
+    event ValidatorThresholdChanged(
+        uint256 indexed prevValidatorThreshold,
+        uint256 indexed newValidatorThreshold
+    );
+    event ValidatorChanged(address indexed validator, bool indexed isValid);
 
     //only stable coin is in whitelist. eg: USDT/USDC
     modifier isWhitelisted(address token) {
@@ -169,6 +175,14 @@ contract OmnichainSwapProxy is
         isWhitelisted(data.srcToken)
     {
         if (
+            validatorThreshold == 0 ||
+            data.signatures.length < validatorThreshold
+        ) {
+            revert SignatureInvalid();
+        }
+
+        _validateCrossChainSwapToByProtocolSignatures(data);
+        if (
             data.to == address(0) ||
             data.fromChainId == CHAIN_ID ||
             data.dstChainId != CHAIN_ID ||
@@ -197,11 +211,17 @@ contract OmnichainSwapProxy is
     function withdrawTokens(
         address token,
         address to,
-        uint256 amount
+        uint256 amount,
+        DataTypes.EIP712Signature[] calldata signatures
     ) external onlyWithdrawer {
         if (token == address(0) || to == address(0) || amount == 0) {
             revert InvalidParam();
         }
+        if (validatorThreshold == 0 || signatures.length < validatorThreshold) {
+            revert SignatureInvalid();
+        }
+        _validateWithdrawTokenSignatures(token, to, amount, signatures);
+
         uint256 balance = IERC20(token).balanceOf(address(this));
         if (amount > balance) {
             revert TransferFailed();
@@ -210,10 +230,18 @@ contract OmnichainSwapProxy is
         emit Erc20TokenWithdrawn(token, to, amount);
     }
 
-    function withdrawEth(address to, uint256 amount) external onlyWithdrawer {
+    function withdrawEth(
+        address to,
+        uint256 amount,
+        DataTypes.EIP712Signature[] calldata signatures
+    ) external onlyWithdrawer {
         if (to == address(0) || amount == 0) {
             revert InvalidParam();
         }
+        if (validatorThreshold == 0 || signatures.length < validatorThreshold) {
+            revert SignatureInvalid();
+        }
+        _validateWithdrawEthSignatures(to, amount, signatures);
         uint256 balance = address(this).balance;
         if (amount > balance) {
             revert TransferFailed();
@@ -231,6 +259,31 @@ contract OmnichainSwapProxy is
     ) external onlyOwner {
         whitelistTokens[token] = whitelisted;
         emit TokenWhitelisted(token, whitelisted);
+    }
+
+    function setValidatorThreshold(
+        uint256 _validatorThreshold
+    ) external onlyOwner {
+        if (_validatorThreshold == 0) {
+            revert InvalidParam();
+        }
+        uint256 prevValidatorThreshold = validatorThreshold;
+        validatorThreshold = _validatorThreshold;
+        emit ValidatorThresholdChanged(
+            prevValidatorThreshold,
+            validatorThreshold
+        );
+    }
+
+    function setValidator(
+        address _validator,
+        bool _isValid
+    ) external onlyOwner {
+        if (_validator == address(0)) {
+            revert InvalidParam();
+        }
+        validators[_validator] = _isValid;
+        emit ValidatorChanged(_validator, _isValid);
     }
 
     function setRelayerApprovalAmount(
@@ -342,8 +395,8 @@ contract OmnichainSwapProxy is
             if (afterSrcTokenBalance != beforeSrcTokenBalance) {
                 revert FailedGetBackTokenFromTomoRouter();
             }
-            //send coin back to user as refund
-            IERC20(data.srcToken).safeTransfer(data.to, data.amount);
+            //send coin back to user as refund, first phase not need to refund, refund by manual
+            //IERC20(data.srcToken).safeTransfer(data.to, data.amount);
             swapSuccess = false;
         } else {
             uint256 afterSrcTokenBalance = IERC20(data.srcToken).balanceOf(
@@ -372,5 +425,113 @@ contract OmnichainSwapProxy is
             data.txHash,
             swapSuccess
         );
+    }
+
+    function _validateWithdrawTokenSignatures(
+        address token,
+        address to,
+        uint256 amount,
+        DataTypes.EIP712Signature[] calldata signatures
+    ) private view {
+        for (uint256 i = 0; i < signatures.length; i++) {
+            _validateRecoveredAddress(
+                _calculateDigest(
+                    keccak256(
+                        abi.encode(WITHDRAW_TOKEN_TYPEHASH, token, to, amount)
+                    )
+                ),
+                signatures[i]
+            );
+        }
+    }
+
+    function _validateWithdrawEthSignatures(
+        address to,
+        uint256 amount,
+        DataTypes.EIP712Signature[] calldata signatures
+    ) private view {
+        for (uint256 i = 0; i < signatures.length; i++) {
+            _validateRecoveredAddress(
+                _calculateDigest(
+                    keccak256(abi.encode(WITHDRAW_ETH_TYPEHASH, to, amount))
+                ),
+                signatures[i]
+            );
+        }
+    }
+
+    function _validateCrossChainSwapToByProtocolSignatures(
+        DataTypes.CrossChainSwapDataByProtocol calldata data
+    ) private view {
+        for (uint256 i = 0; i < data.signatures.length; i++) {
+            _validateRecoveredAddress(
+                _calculateDigest(
+                    keccak256(
+                        abi.encode(
+                            CROSS_CHAIN_SWAP_BY_PROTOCOL_TYPEHASH,
+                            data.srcToken,
+                            data.dstToken,
+                            data.to,
+                            data.amount,
+                            data.fromChainId,
+                            data.dstChainId,
+                            data.txHash
+                        )
+                    )
+                ),
+                data.signatures[i]
+            );
+        }
+    }
+
+    /**
+     * @dev Wrapper for ecrecover to reduce code size, used in meta-tx specific functions.
+     */
+    function _validateRecoveredAddress(
+        bytes32 digest,
+        DataTypes.EIP712Signature calldata sig
+    ) private view {
+        address recoveredAddress = ecrecover(digest, sig.v, sig.r, sig.s);
+        if (recoveredAddress == address(0) || !validators[recoveredAddress])
+            revert SignatureInvalid();
+    }
+
+    /**
+     * @dev Calculates EIP712 DOMAIN_SEPARATOR based on the current contract and chain ID.
+     */
+    function _calculateDomainSeparator() private view returns (bytes32) {
+        return
+            keccak256(
+                abi.encode(
+                    EIP712_DOMAIN_TYPEHASH,
+                    DOMAIN_NAME,
+                    EIP712_REVISION_HASH,
+                    CHAIN_ID,
+                    address(this)
+                )
+            );
+    }
+
+    /**
+     * @dev Calculates EIP712 digest based on the current DOMAIN_SEPARATOR.
+     *
+     * @param hashedMessage The message hash from which the digest should be calculated.
+     *
+     * @return bytes32 A 32-byte output representing the EIP712 digest.
+     */
+    function _calculateDigest(
+        bytes32 hashedMessage
+    ) private view returns (bytes32) {
+        bytes32 digest;
+        unchecked {
+            digest = keccak256(
+                abi.encodePacked(
+                    "\x19\x01",
+                    _calculateDomainSeparator(),
+                    hashedMessage
+                )
+            );
+        }
+        return digest;
     }
 }
