@@ -488,8 +488,7 @@ contract OmnichainSwapProxy is
                         data.to,
                         data.amount,
                         data.fromChainId,
-                        data.dstChainId,
-                        data.txHash
+                        data.dstChainId
                     )
                 )
             ),
@@ -499,14 +498,13 @@ contract OmnichainSwapProxy is
 
     /**
      * @dev validate multi signatures
-     * @param messageHash the message hash to validate
+     * @param digest the EIP712 digest to validate (already calculated)
      * @param signatures the signatures to validate (must be sorted in ascending order)
      */
     function _validateOrderedMultiSignatures(
-        bytes32 messageHash,
+        bytes32 digest,
         DataTypes.EIP712Signature[] calldata signatures
     ) private view {
-        bytes32 digest = _calculateDigest(messageHash);
         address previousSigner = address(0);
 
         for (uint256 i = 0; i < signatures.length; i++) {
