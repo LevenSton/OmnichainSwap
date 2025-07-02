@@ -31,6 +31,8 @@ abstract contract OmnichainSwapStorage {
     address public tomoRouter;
     mapping(bytes => bool) public usedHash;
     mapping(address => bool) public whitelistTokens;
-    mapping(address => uint256) public relayerApprovalAmount;
+    mapping(uint256 => bool) public whitelistDstChainIds;
+    mapping(address => mapping(address => uint256))
+        public relayerApprovalAmount;
     mapping(address => bool) public validators;
 }

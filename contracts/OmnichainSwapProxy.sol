@@ -59,6 +59,7 @@ contract OmnichainSwapProxy is
 
     event RelayerApprovalAmountChanged(
         address indexed relayer,
+        address indexed token,
         uint256 indexed amount
     );
     event TomoRouterChanged(
@@ -81,6 +82,10 @@ contract OmnichainSwapProxy is
         uint256 indexed newValidatorThreshold
     );
     event ValidatorChanged(address indexed validator, bool indexed isValid);
+    event WhitelistDstChainIdChanged(
+        uint256 indexed dstChainId,
+        bool indexed whitelisted
+    );
 
     //only stable coin is in whitelist. eg: USDT/USDC
     modifier isWhitelisted(address token) {
@@ -119,8 +124,12 @@ contract OmnichainSwapProxy is
         tomoRouter = _tomoRouter;
     }
 
-    modifier onlyRelayer(address _relayer, uint256 _amount) {
-        if (relayerApprovalAmount[_relayer] < _amount) {
+    modifier onlyRelayer(
+        address _relayer,
+        address _token,
+        uint256 _amount
+    ) {
+        if (relayerApprovalAmount[_relayer][_token] < _amount) {
             revert NotRelayerOrInsufficientApproval();
         }
         _;
@@ -171,7 +180,7 @@ contract OmnichainSwapProxy is
         payable
         whenNotPaused
         nonReentrant
-        onlyRelayer(msg.sender, data.amount)
+        onlyRelayer(msg.sender, data.srcToken, data.amount)
         isWhitelisted(data.srcToken)
     {
         if (
@@ -194,7 +203,7 @@ contract OmnichainSwapProxy is
             revert UsedHash();
         }
         usedHash[data.txHash] = true;
-        relayerApprovalAmount[msg.sender] -= data.amount;
+        relayerApprovalAmount[msg.sender][data.srcToken] -= data.amount;
         // no need to swap, just send stable coin to user
         if (data.srcToken == data.dstToken && data.routerCalldata.length == 0) {
             _sendTokenToUser(data);
@@ -261,6 +270,14 @@ contract OmnichainSwapProxy is
         emit TokenWhitelisted(token, whitelisted);
     }
 
+    function setWhitelistDstChainId(
+        uint256 dstChainId,
+        bool whitelisted
+    ) external onlyOwner {
+        whitelistDstChainIds[dstChainId] = whitelisted;
+        emit WhitelistDstChainIdChanged(dstChainId, whitelisted);
+    }
+
     function setValidatorThreshold(
         uint256 _validatorThreshold
     ) external onlyOwner {
@@ -288,13 +305,14 @@ contract OmnichainSwapProxy is
 
     function setRelayerApprovalAmount(
         address _relayer,
+        address _token,
         uint256 _amount
     ) external onlyOwner {
-        if (_relayer == address(0) || _amount == 0) {
+        if (_relayer == address(0) || _token == address(0) || _amount == 0) {
             revert InvalidParam();
         }
-        relayerApprovalAmount[_relayer] = _amount;
-        emit RelayerApprovalAmountChanged(_relayer, _amount);
+        relayerApprovalAmount[_relayer][_token] = _amount;
+        emit RelayerApprovalAmountChanged(_relayer, _token, _amount);
     }
 
     function setTomoRouter(address _tomoRouter) external onlyOwner {
