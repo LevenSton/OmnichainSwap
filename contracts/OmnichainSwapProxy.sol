@@ -31,6 +31,7 @@ contract OmnichainSwapProxy is
     error SwapFailedFromTomoRouter();
     error SrcTokenBalanceNotCorrect();
     error SignatureInvalid();
+    error DuplicateSignerOrSignaturesNotSorted();
 
     event CrossChainSwapToByUser(
         uint256 indexed orderId,
@@ -451,16 +452,14 @@ contract OmnichainSwapProxy is
         uint256 amount,
         DataTypes.EIP712Signature[] calldata signatures
     ) private view {
-        for (uint256 i = 0; i < signatures.length; i++) {
-            _validateRecoveredAddress(
-                _calculateDigest(
-                    keccak256(
-                        abi.encode(WITHDRAW_TOKEN_TYPEHASH, token, to, amount)
-                    )
-                ),
-                signatures[i]
-            );
-        }
+        _validateOrderedMultiSignatures(
+            _calculateDigest(
+                keccak256(
+                    abi.encode(WITHDRAW_TOKEN_TYPEHASH, token, to, amount)
+                )
+            ),
+            signatures
+        );
     }
 
     function _validateWithdrawEthSignatures(
@@ -468,50 +467,67 @@ contract OmnichainSwapProxy is
         uint256 amount,
         DataTypes.EIP712Signature[] calldata signatures
     ) private view {
-        for (uint256 i = 0; i < signatures.length; i++) {
-            _validateRecoveredAddress(
-                _calculateDigest(
-                    keccak256(abi.encode(WITHDRAW_ETH_TYPEHASH, to, amount))
-                ),
-                signatures[i]
-            );
-        }
+        _validateOrderedMultiSignatures(
+            _calculateDigest(
+                keccak256(abi.encode(WITHDRAW_ETH_TYPEHASH, to, amount))
+            ),
+            signatures
+        );
     }
 
     function _validateCrossChainSwapToByProtocolSignatures(
         DataTypes.CrossChainSwapDataByProtocol calldata data
     ) private view {
-        for (uint256 i = 0; i < data.signatures.length; i++) {
-            _validateRecoveredAddress(
-                _calculateDigest(
-                    keccak256(
-                        abi.encode(
-                            CROSS_CHAIN_SWAP_BY_PROTOCOL_TYPEHASH,
-                            data.srcToken,
-                            data.dstToken,
-                            data.to,
-                            data.amount,
-                            data.fromChainId,
-                            data.dstChainId,
-                            data.txHash
-                        )
+        _validateOrderedMultiSignatures(
+            _calculateDigest(
+                keccak256(
+                    abi.encode(
+                        CROSS_CHAIN_SWAP_BY_PROTOCOL_TYPEHASH,
+                        data.srcToken,
+                        data.dstToken,
+                        data.to,
+                        data.amount,
+                        data.fromChainId,
+                        data.dstChainId,
+                        data.txHash
                     )
-                ),
-                data.signatures[i]
-            );
-        }
+                )
+            ),
+            data.signatures
+        );
     }
 
     /**
-     * @dev Wrapper for ecrecover to reduce code size, used in meta-tx specific functions.
+     * @dev validate multi signatures
+     * @param messageHash the message hash to validate
+     * @param signatures the signatures to validate (must be sorted in ascending order)
      */
-    function _validateRecoveredAddress(
-        bytes32 digest,
-        DataTypes.EIP712Signature calldata sig
+    function _validateOrderedMultiSignatures(
+        bytes32 messageHash,
+        DataTypes.EIP712Signature[] calldata signatures
     ) private view {
-        address recoveredAddress = ecrecover(digest, sig.v, sig.r, sig.s);
-        if (recoveredAddress == address(0) || !validators[recoveredAddress])
-            revert SignatureInvalid();
+        bytes32 digest = _calculateDigest(messageHash);
+        address previousSigner = address(0);
+
+        for (uint256 i = 0; i < signatures.length; i++) {
+            address currentSigner = ecrecover(
+                digest,
+                signatures[i].v,
+                signatures[i].r,
+                signatures[i].s
+            );
+
+            if (currentSigner == address(0) || !validators[currentSigner]) {
+                revert SignatureInvalid();
+            }
+
+            // check if the signatures are sorted in ascending order and no duplicates
+            if (currentSigner <= previousSigner) {
+                revert DuplicateSignerOrSignaturesNotSorted();
+            }
+
+            previousSigner = currentSigner;
+        }
     }
 
     /**
