@@ -4,6 +4,8 @@ export const ERRORS = {
     NotWhitelistedToken: "NotWhitelistedToken",
     InvalidInitialization: "InvalidInitialization",
     InvalidParam: "InvalidParam",
-    NotRelayer: "NotRelayer"
+    NotRelayerOrInsufficientApproval: "NotRelayerOrInsufficientApproval",
+    NotWithdrawer: "NotWithdrawer",
+    TransferFailed: "TransferFailed",
 };
   

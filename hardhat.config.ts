@@ -28,19 +28,36 @@ const config: HardhatUserConfig = {
   networks: {
     hardhat: {
       forking: {
-        url: "https://bnb-mainnet.g.alchemy.com/v2/ANAxZRbw8c4K6cGKOLRvJZqpWF0_jYtZ",
-        blockNumber: 49588702,
+        url: "https://bsc-mainnet.infura.io/v3/0f1c366f33a745f5800681a33a66de3b",
+        blockNumber: 52594590,
       },
       gas: 16000000,
       accounts: [
         {
-          privateKey: "0xadfb1c6c11c4c8cd7c6c0592344759ced4fd7c8486a048de52a8e8d3877a67f9", // 这是一个测试私钥，实际使用请替换
-          balance: "10000000000000000000" // 10 BNB (以 wei 为单位)
+          privateKey: "0xadfb1c6c11c4c8cd7c6c0592344759ced4fd7c8486a048de52a8e8d3877a67f9",
+          balance: "10000000000000000000"
         },
         {
-          privateKey: "0x4e75d4cc93e17ad494e22b5df726661af328d2bcc11ace1490189580d555a7e9", // 这是一个测试私钥，实际使用请替换
-          balance: "10000000000000000000" // 10 BNB (以 wei 为单位)
-        }
+          privateKey: "0x4e75d4cc93e17ad494e22b5df726661af328d2bcc11ace1490189580d555a7e9",
+          balance: "10000000000000000000"
+        },{
+          privateKey: "0xfde473ee81e04fb8203832f0e6c4985c198b2d3af7a1c49c7cd622f1fb37e9f1",
+          balance: "10000000000000000000"
+        },
+        {
+          privateKey: "0xcee688d50af91b4d0cbcdaa2b1c51b52ebea0b93ef46a4b44e01f01529164701",
+          balance: "10000000000000000000"
+        },{
+          privateKey: "0xeec2a89fd689202fcdb0adf8af79065abdda43c9713e65d8f5bab57d9df7d1e7",
+          balance: "10000000000000000000"
+        },
+        {
+          privateKey: "0x11462f912c7b36c8b66521910ae7de7f1ed2521d392622d26dc6445b51adcfd7",
+          balance: "10000000000000000000"
+        },{
+          privateKey: "0xd7d07404461652f356132980294d3e58edba705f976b3309035908af31111946",
+          balance: "10000000000000000000"
+        },
       ]
     },
     linea_testnet: {
