@@ -152,7 +152,8 @@ contract OmnichainSwapProxy is
         if (
             data.to == bytes32(0) ||
             data.dstChainId == CHAIN_ID ||
-            data.amount == 0
+            data.amount == 0 ||
+            !whitelistDstChainIds[data.dstChainId]
         ) {
             revert InvalidParam();
         }
@@ -275,6 +276,9 @@ contract OmnichainSwapProxy is
         uint256 dstChainId,
         bool whitelisted
     ) external onlyOwner {
+        if (dstChainId == CHAIN_ID) {
+            revert InvalidParam();
+        }
         whitelistDstChainIds[dstChainId] = whitelisted;
         emit WhitelistDstChainIdChanged(dstChainId, whitelisted);
     }
