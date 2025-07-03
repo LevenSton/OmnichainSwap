@@ -112,6 +112,7 @@ before(async function () {
   await omnichainSwapProxyContract.connect(deployer).setValidatorThreshold(2);
   await omnichainSwapProxyContract.connect(deployer).setRelayerApprovalAmount(relayerAddress, _usdt, ethers.parseEther("1000000"));
   await omnichainSwapProxyContract.connect(deployer).setWithdrawer(withdrawerAddress);
+  await omnichainSwapProxyContract.connect(deployer).setWhitelistDstChainId(8453, true);
 
   await expect(omnichainSwapProxyContract.connect(user).withdrawTokens(_usdt, userAddress, 1000, [])).to.be.revertedWithCustomError(omnichainSwapProxyContract, ERRORS.NotWithdrawer);
   await expect(omnichainSwapProxyContract.connect(user).withdrawEth(userAddress, 1000, [])).to.be.revertedWithCustomError(omnichainSwapProxyContract, ERRORS.NotWithdrawer);

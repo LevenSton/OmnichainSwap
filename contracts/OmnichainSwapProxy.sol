@@ -492,7 +492,8 @@ contract OmnichainSwapProxy is
                         data.to,
                         data.amount,
                         data.fromChainId,
-                        data.dstChainId
+                        data.dstChainId,
+                        keccak256(data.txHash)
                     )
                 )
             ),

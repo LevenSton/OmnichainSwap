@@ -76,7 +76,9 @@ makeSuiteCleanRoom('Execute OmnichainSwap crossChainSwapToByProtocol', function 
                 })).to.be.revertedWithCustomError(omnichainSwapProxyContract, ERRORS.NotWhitelistedToken);
             });
             it('Should fail to crossChainSwapToByProtocol if invliad to.', async function () {
-                const signatures = await buildCrossChainSwapToByProtocolSeparator(omnichainSwapProxyAddress, "OmnichainBridge", _usdt, _usdt, ZERO_ADDRESS, crossAmount, 8453, 8453);
+                const txHashHex = "0x742d35cc6ad4c3c76c85c4f1e7d4b4e1f8a8d2c3b4a5e6f7890123456789abcd"
+                const txHashBytes = ethers.getBytes(txHashHex);
+                const signatures = await buildCrossChainSwapToByProtocolSeparator(omnichainSwapProxyAddress, "OmnichainBridge", _usdt, _usdt, ZERO_ADDRESS, crossAmount, 8453, 8453, txHashBytes);
                 console.log("signatures: ", signatures)
                 await expect(omnichainSwapProxyContract.connect(relayer).crossChainSwapToByProtocol({
                     srcToken: _usdt,
@@ -85,12 +87,15 @@ makeSuiteCleanRoom('Execute OmnichainSwap crossChainSwapToByProtocol', function 
                     amount: crossAmount,
                     fromChainId: 8453,
                     dstChainId: 8453,
-                    txHash: ethers.zeroPadValue(userAddress, 32),
+                    txHash: txHashBytes,
                     routerCalldata: "0xa234",
                     signatures: signatures
                 })).to.be.revertedWithCustomError(omnichainSwapProxyContract, ERRORS.InvalidParam);
             });
-            it('Should fail to crossChainSwapToByProtocol if invliad chainid.',   async function () {
+            it('Should fail to crossChainSwapToByProtocol if invliad chainid.', async function () {
+                const txHashHex = "0x742d35cc6ad4c3c76c85c4f1e7d4b4e1f8a8d2c3b4a5e6f7890123456789abcd"
+                const txHashBytes = ethers.getBytes(txHashHex);
+                const signatures = await buildCrossChainSwapToByProtocolSeparator(omnichainSwapProxyAddress, "OmnichainBridge", _usdt, _usdt, userAddress, crossAmount, 31337, 8453, txHashBytes);
                 await expect(omnichainSwapProxyContract.connect(relayer).crossChainSwapToByProtocol({
                     srcToken: _usdt,
                     dstToken: _usdt,
@@ -98,12 +103,15 @@ makeSuiteCleanRoom('Execute OmnichainSwap crossChainSwapToByProtocol', function 
                     amount: crossAmount,
                     fromChainId: 31337,
                     dstChainId: 8453,
-                    txHash: ethers.zeroPadValue(userAddress, 32),
+                    txHash: txHashBytes,
                     routerCalldata: "0xa234",
-                    signatures: []
+                    signatures: signatures
                 })).to.be.revertedWithCustomError(omnichainSwapProxyContract, ERRORS.InvalidParam);
             });
-            it('Should fail to crossChainSwapToByProtocol if invliad amount.',   async function () {
+            it('Should fail to crossChainSwapToByProtocol if invliad amount.', async function () {
+                const txHashHex = "0x742d35cc6ad4c3c76c85c4f1e7d4b4e1f8a8d2c3b4a5e6f7890123456789abcd"
+                const txHashBytes = ethers.getBytes(txHashHex);
+                const signatures = await buildCrossChainSwapToByProtocolSeparator(omnichainSwapProxyAddress, "OmnichainBridge", _usdt, _usdt, userAddress, 0n, 8453, 8453, txHashBytes);
                 await expect(omnichainSwapProxyContract.connect(relayer).crossChainSwapToByProtocol({
                     srcToken: _usdt,
                     dstToken: _usdt,
@@ -111,12 +119,15 @@ makeSuiteCleanRoom('Execute OmnichainSwap crossChainSwapToByProtocol', function 
                     amount: 0,
                     fromChainId: 8453,
                     dstChainId: 8453,
-                    txHash: ethers.zeroPadValue(userAddress, 32),
+                    txHash: txHashBytes,
                     routerCalldata: "0xa234",
-                    signatures: []
+                    signatures: signatures
                 })).to.be.revertedWithCustomError(omnichainSwapProxyContract, ERRORS.InvalidParam);
             });
-            it('Should fail to crossChainSwapToByProtocol if invalid params.',   async function () {
+            it('Should fail to crossChainSwapToByProtocol if invalid params.', async function () {
+                const txHashHex = "0x742d35cc6ad4c3c76c85c4f1e7d4b4e1f8a8d2c3b4a5e6f7890123456789abcd"
+                const txHashBytes = ethers.getBytes(txHashHex);
+                const signatures = await buildCrossChainSwapToByProtocolSeparator(omnichainSwapProxyAddress, "OmnichainBridge", _usdt, _usdt, userAddress, crossAmount, 8453, 8453, txHashBytes);
                 await expect(omnichainSwapProxyContract.connect(relayer).crossChainSwapToByProtocol({
                     srcToken: _usdt,
                     dstToken: _usdt,
@@ -124,12 +135,15 @@ makeSuiteCleanRoom('Execute OmnichainSwap crossChainSwapToByProtocol', function 
                     amount: crossAmount,
                     fromChainId: 8453,
                     dstChainId: 8453,
-                    txHash: ethers.zeroPadValue(userAddress, 32),
+                    txHash: txHashBytes,
                     routerCalldata: "0xa234",
-                    signatures: []
+                    signatures: signatures
                 })).to.be.revertedWithCustomError(omnichainSwapProxyContract, ERRORS.InvalidParam);
             });
-            it('Should fail to crossChainSwapToByProtocol if not enough balance.',   async function () {
+            it('Should fail to crossChainSwapToByProtocol if not enough balance.', async function () {
+                const txHashHex = "0x742d35cc6ad4c3c76c85c4f1e7d4b4e1f8a8d2c3b4a5e6f7890123456789abcd"
+                const txHashBytes = ethers.getBytes(txHashHex);
+                const signatures = await buildCrossChainSwapToByProtocolSeparator(omnichainSwapProxyAddress, "OmnichainBridge", _usdt, _usdt, userAddress, crossAmount, 8453, 8453, txHashBytes);
                 await expect(omnichainSwapProxyContract.connect(relayer).crossChainSwapToByProtocol({
                     srcToken: _usdt,
                     dstToken: _usdt,
@@ -137,9 +151,9 @@ makeSuiteCleanRoom('Execute OmnichainSwap crossChainSwapToByProtocol', function 
                     amount: crossAmount,
                     fromChainId: 8453,
                     dstChainId: 8453,
-                    txHash: ethers.zeroPadValue(userAddress, 32),
+                    txHash: txHashBytes,
                     routerCalldata: "0x",
-                    signatures: []
+                    signatures: signatures
                 })).to.be.reverted
             });
             it('failed withdraw token if not enough balance.', async function () {

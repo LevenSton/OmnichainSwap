@@ -91,8 +91,9 @@ export async function buildCrossChainSwapToByProtocolSeparator(
   amount: bigint,
   fromChainId: number,
   dstChainId: number,
+  txHash: Uint8Array,
 ): Promise<{ v: number; r: string; s: string }[]> {
-  const msgParams = buildCrossChainSwapToByProtocolParams(bridgeAddress, name, srcToken, dstToken, to, amount, fromChainId, dstChainId);
+  const msgParams = buildCrossChainSwapToByProtocolParams(bridgeAddress, name, srcToken, dstToken, to, amount, fromChainId, dstChainId, txHash);
   return await getSig(msgParams);
 }
 
@@ -106,6 +107,7 @@ const buildCrossChainSwapToByProtocolParams = (
   amount: bigint,
   fromChainId: number,
   dstChainId: number,
+  txHash: Uint8Array,
 ) => ({
   types: {
     CrossChainSwapByProtocol: [
@@ -115,6 +117,7 @@ const buildCrossChainSwapToByProtocolParams = (
       { name: 'amount', type: 'uint256' },
       { name: 'fromChainId', type: 'uint256' },
       { name: 'dstChainId', type: 'uint256' },
+      { name: 'txHash', type: 'bytes' },
     ],
   },
   domain: {
@@ -130,6 +133,7 @@ const buildCrossChainSwapToByProtocolParams = (
     amount: amount,
     fromChainId: fromChainId,
     dstChainId: dstChainId,
+    txHash: txHash,
   },
 });
 
