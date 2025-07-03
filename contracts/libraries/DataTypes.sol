@@ -34,4 +34,12 @@ library DataTypes {
         bytes routerCalldata;
         EIP712Signature[] signatures;
     }
+
+    struct RefundStableCoinData {
+        address token;
+        address to;
+        uint256 amount;
+        bytes txHash;
+        EIP712Signature[] signatures;
+    }
 }

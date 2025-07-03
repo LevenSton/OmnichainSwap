@@ -7,5 +7,6 @@ export const ERRORS = {
     NotRelayerOrInsufficientApproval: "NotRelayerOrInsufficientApproval",
     NotWithdrawer: "NotWithdrawer",
     TransferFailed: "TransferFailed",
+    RefundStableCoinThresholdExceeded: "RefundStableCoinThresholdExceeded",
 };
   

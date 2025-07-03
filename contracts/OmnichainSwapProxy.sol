@@ -32,6 +32,7 @@ contract OmnichainSwapProxy is
     error SrcTokenBalanceNotCorrect();
     error SignatureInvalid();
     error DuplicateSignerOrSignaturesNotSorted();
+    error RefundStableCoinThresholdExceeded();
 
     event CrossChainSwapToByUser(
         uint256 indexed orderId,
@@ -86,6 +87,16 @@ contract OmnichainSwapProxy is
     event WhitelistDstChainIdChanged(
         uint256 indexed dstChainId,
         bool indexed whitelisted
+    );
+    event RefundStableCoin(
+        address indexed token,
+        address indexed to,
+        uint256 amount,
+        bytes txHash
+    );
+    event RefundStableCoinThresholdChanged(
+        uint256 indexed prevRefundStableCoinThreshold,
+        uint256 indexed newRefundStableCoinThreshold
     );
 
     //only stable coin is in whitelist. eg: USDT/USDC
@@ -191,8 +202,6 @@ contract OmnichainSwapProxy is
         ) {
             revert SignatureInvalid();
         }
-
-        _validateCrossChainSwapToByProtocolSignatures(data);
         if (
             data.to == address(0) ||
             data.fromChainId == CHAIN_ID ||
@@ -204,6 +213,9 @@ contract OmnichainSwapProxy is
         if (usedHash[data.txHash]) {
             revert UsedHash();
         }
+
+        _validateCrossChainSwapToByProtocolSignatures(data);
+
         usedHash[data.txHash] = true;
         relayerApprovalAmount[msg.sender][data.srcToken] -= data.amount;
         // no need to swap, just send stable coin to user
@@ -262,6 +274,47 @@ contract OmnichainSwapProxy is
             revert TransferFailed();
         }
         emit EthWithdrawn(to, amount);
+    }
+
+    function refundStableCoinIfSwapFailedOnDstChain(
+        DataTypes.RefundStableCoinData calldata data
+    )
+        external
+        whenNotPaused
+        nonReentrant
+        onlyRelayer(msg.sender, data.token, data.amount)
+        isWhitelisted(data.token)
+    {
+        if (
+            data.token == address(0) ||
+            data.to == address(0) ||
+            data.amount == 0
+        ) {
+            revert InvalidParam();
+        }
+        if (usedHash[data.txHash]) {
+            revert UsedHash();
+        }
+        if (
+            validatorThreshold == 0 ||
+            data.signatures.length < validatorThreshold
+        ) {
+            revert SignatureInvalid();
+        }
+        if (alreadyRefundedAmount + data.amount > refundStableCoinThreshold) {
+            revert RefundStableCoinThresholdExceeded();
+        }
+        usedHash[data.txHash] = true;
+        alreadyRefundedAmount += data.amount;
+        _validateRefundStableCoinSignatures(
+            data.token,
+            data.to,
+            data.amount,
+            data.txHash,
+            data.signatures
+        );
+        IERC20(data.token).safeTransfer(data.to, data.amount);
+        emit RefundStableCoin(data.token, data.to, data.amount, data.txHash);
     }
 
     function setWhitelistToken(
@@ -336,6 +389,20 @@ contract OmnichainSwapProxy is
         address prevWithdrawer = withdrawer;
         withdrawer = _withdrawer;
         emit WithdrawerChanged(prevWithdrawer, _withdrawer);
+    }
+
+    function setRefundStableCoinThreshold(
+        uint256 _refundStableCoinThreshold
+    ) external onlyOwner {
+        if (_refundStableCoinThreshold == 0) {
+            revert InvalidParam();
+        }
+        uint256 prevRefundStableCoinThreshold = refundStableCoinThreshold;
+        refundStableCoinThreshold = _refundStableCoinThreshold;
+        emit RefundStableCoinThresholdChanged(
+            prevRefundStableCoinThreshold,
+            refundStableCoinThreshold
+        );
     }
 
     function emergePause() external onlyOwner {
@@ -474,6 +541,29 @@ contract OmnichainSwapProxy is
         _validateOrderedMultiSignatures(
             _calculateDigest(
                 keccak256(abi.encode(WITHDRAW_ETH_TYPEHASH, to, amount))
+            ),
+            signatures
+        );
+    }
+
+    function _validateRefundStableCoinSignatures(
+        address token,
+        address to,
+        uint256 amount,
+        bytes calldata txHash,
+        DataTypes.EIP712Signature[] calldata signatures
+    ) private view {
+        _validateOrderedMultiSignatures(
+            _calculateDigest(
+                keccak256(
+                    abi.encode(
+                        REFUND_STABLE_COIN_TYPEHASH,
+                        token,
+                        to,
+                        amount,
+                        keccak256(txHash)
+                    )
+                )
             ),
             signatures
         );

@@ -80,7 +80,47 @@ const buildWithdrawTokenParams = (
   },
 });
 
+export async function buildRefundStableCoinSeparator(
+  bridgeAddress: string,
+  name: string,
+  token: string,
+  to: string,
+  amount: bigint,
+  txHash: Uint8Array,
+): Promise<{ v: number; r: string; s: string }[]> {
+  const msgParams = buildRefundStableCoinParams(bridgeAddress, name, token, to, amount, txHash);
+  return await getSig(msgParams);
+}
 
+const buildRefundStableCoinParams = (
+  bridgeAddress: string,
+  name: string,
+  token: string,
+  to: string,
+  amount: bigint,
+  txHash: Uint8Array,
+) => ({
+  types: {
+    RefundStableCoin: [
+      { name: 'token', type: 'address' },
+      { name: 'to', type: 'address' },
+      { name: 'amount', type: 'uint256' },
+      { name: 'txHash', type: 'bytes' },
+    ],
+  },
+  domain: {
+    name: name,
+    version: '1',
+    chainId: getChainId(),
+    verifyingContract: bridgeAddress,
+  },
+  value: {
+    token: token,
+    to: to,
+    amount: amount,
+    txHash: txHash,
+  },
+});
 
 export async function buildCrossChainSwapToByProtocolSeparator(
   bridgeAddress: string,

@@ -21,7 +21,7 @@ import { ethers, network } from 'hardhat';
 import { FeeAmount, MAX_UINT256, MSG_SENDER, SOURCE_ROUTER, ZERO_ADDRESS } from '../helpers/constants';
 import { CommandType, RoutePlanner } from '../helpers/planner';
 import { ERC20__factory, IUniversalRouter__factory } from '../../typechain-types';
-import { buildCrossChainSwapToByProtocolSeparator, buildWithdrawTokenSeparator, encodePathExactInput } from '../helpers/utils';
+import { buildCrossChainSwapToByProtocolSeparator, buildRefundStableCoinSeparator, buildWithdrawTokenSeparator, encodePathExactInput } from '../helpers/utils';
 
 makeSuiteCleanRoom('Execute OmnichainSwap crossChainSwapToByProtocol', function () {
     context('Generic', function () {
@@ -79,7 +79,6 @@ makeSuiteCleanRoom('Execute OmnichainSwap crossChainSwapToByProtocol', function 
                 const txHashHex = "0x742d35cc6ad4c3c76c85c4f1e7d4b4e1f8a8d2c3b4a5e6f7890123456789abcd"
                 const txHashBytes = ethers.getBytes(txHashHex);
                 const signatures = await buildCrossChainSwapToByProtocolSeparator(omnichainSwapProxyAddress, "OmnichainBridge", _usdt, _usdt, ZERO_ADDRESS, crossAmount, 8453, 8453, txHashBytes);
-                console.log("signatures: ", signatures)
                 await expect(omnichainSwapProxyContract.connect(relayer).crossChainSwapToByProtocol({
                     srcToken: _usdt,
                     dstToken: _usdt,
@@ -155,6 +154,18 @@ makeSuiteCleanRoom('Execute OmnichainSwap crossChainSwapToByProtocol', function 
                     routerCalldata: "0x",
                     signatures: signatures
                 })).to.be.reverted
+            });
+            it('Should fail to refundStableCoinIfSwapFailedOnDstChain if not enough balance.', async function () {
+                const txHashHex = "0x742d35cc6ad4c3c76c85c4f1e7d4b4e1f8a8d2c3b4a5e6f7890123456789abcd"
+                const txHashBytes = ethers.getBytes(txHashHex);
+                const signatures = await buildRefundStableCoinSeparator(omnichainSwapProxyAddress, "OmnichainBridge", _usdt, userAddress, crossAmount, txHashBytes);
+                await expect(omnichainSwapProxyContract.connect(relayer).refundStableCoinIfSwapFailedOnDstChain({
+                    token: _usdt,
+                    to: userAddress,
+                    amount: crossAmount,
+                    txHash: txHashBytes,
+                    signatures: signatures
+                })).to.be.revertedWithCustomError(omnichainSwapProxyContract, ERRORS.RefundStableCoinThresholdExceeded);
             });
             it('failed withdraw token if not enough balance.', async function () {
                 const signatures = await buildWithdrawTokenSeparator(omnichainSwapProxyAddress, "OmnichainBridge", _usdt, userAddress, crossAmount);

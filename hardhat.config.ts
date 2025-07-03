@@ -29,7 +29,7 @@ const config: HardhatUserConfig = {
     hardhat: {
       forking: {
         url: "https://bsc-mainnet.infura.io/v3/0f1c366f33a745f5800681a33a66de3b",
-        blockNumber: 52594590,
+        blockNumber: 52711980,
       },
       gas: 16000000,
       accounts: [
