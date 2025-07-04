@@ -12,14 +12,6 @@ abstract contract OmnichainSwapStorage {
                 "CrossChainSwapByProtocol(address srcToken,address dstToken,address to,uint256 amount,uint256 fromChainId,uint256 dstChainId,bytes txHash)"
             )
         );
-    bytes32 public constant WITHDRAW_TOKEN_TYPEHASH =
-        keccak256(
-            abi.encodePacked(
-                "WithdrawToken(address token,address to,uint256 amount)"
-            )
-        );
-    bytes32 public constant WITHDRAW_ETH_TYPEHASH =
-        keccak256(abi.encodePacked("WithdrawEth(address to,uint256 amount)"));
     bytes32 public constant REFUND_STABLE_COIN_TYPEHASH =
         keccak256(
             abi.encodePacked(

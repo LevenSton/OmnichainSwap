@@ -234,40 +234,18 @@ contract OmnichainSwapProxy is
     function withdrawTokens(
         address token,
         address to,
-        uint256 amount,
-        DataTypes.EIP712Signature[] calldata signatures
+        uint256 amount
     ) external onlyWithdrawer {
         if (token == address(0) || to == address(0) || amount == 0) {
             revert InvalidParam();
-        }
-        if (validatorThreshold == 0 || signatures.length < validatorThreshold) {
-            revert SignatureInvalid();
-        }
-        _validateWithdrawTokenSignatures(token, to, amount, signatures);
-
-        uint256 balance = IERC20(token).balanceOf(address(this));
-        if (amount > balance) {
-            revert TransferFailed();
         }
         IERC20(token).safeTransfer(to, amount);
         emit Erc20TokenWithdrawn(token, to, amount);
     }
 
-    function withdrawEth(
-        address to,
-        uint256 amount,
-        DataTypes.EIP712Signature[] calldata signatures
-    ) external onlyWithdrawer {
+    function withdrawEth(address to, uint256 amount) external onlyWithdrawer {
         if (to == address(0) || amount == 0) {
             revert InvalidParam();
-        }
-        if (validatorThreshold == 0 || signatures.length < validatorThreshold) {
-            revert SignatureInvalid();
-        }
-        _validateWithdrawEthSignatures(to, amount, signatures);
-        uint256 balance = address(this).balance;
-        if (amount > balance) {
-            revert TransferFailed();
         }
         (bool suc, ) = payable(to).call{value: amount}("");
         if (!suc) {
@@ -514,35 +492,6 @@ contract OmnichainSwapProxy is
             data.fromChainId,
             data.txHash,
             swapSuccess
-        );
-    }
-
-    function _validateWithdrawTokenSignatures(
-        address token,
-        address to,
-        uint256 amount,
-        DataTypes.EIP712Signature[] calldata signatures
-    ) private view {
-        _validateOrderedMultiSignatures(
-            _calculateDigest(
-                keccak256(
-                    abi.encode(WITHDRAW_TOKEN_TYPEHASH, token, to, amount)
-                )
-            ),
-            signatures
-        );
-    }
-
-    function _validateWithdrawEthSignatures(
-        address to,
-        uint256 amount,
-        DataTypes.EIP712Signature[] calldata signatures
-    ) private view {
-        _validateOrderedMultiSignatures(
-            _calculateDigest(
-                keccak256(abi.encode(WITHDRAW_ETH_TYPEHASH, to, amount))
-            ),
-            signatures
         );
     }
 
