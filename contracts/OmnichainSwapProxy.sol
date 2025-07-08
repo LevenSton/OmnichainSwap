@@ -304,14 +304,19 @@ contract OmnichainSwapProxy is
     }
 
     function setWhitelistDstChainId(
-        uint256 dstChainId,
+        uint256[] calldata dstChainIds,
         bool whitelisted
     ) external onlyOwner {
-        if (dstChainId == CHAIN_ID) {
+        if (dstChainIds.length == 0) {
             revert InvalidParam();
         }
-        whitelistDstChainIds[dstChainId] = whitelisted;
-        emit WhitelistDstChainIdChanged(dstChainId, whitelisted);
+        for (uint256 i = 0; i < dstChainIds.length; i++) {
+            if (dstChainIds[i] == CHAIN_ID) {
+                revert InvalidParam();
+            }
+            whitelistDstChainIds[dstChainIds[i]] = whitelisted;
+            emit WhitelistDstChainIdChanged(dstChainIds[i], whitelisted);
+        }
     }
 
     function setValidatorThreshold(
@@ -329,14 +334,19 @@ contract OmnichainSwapProxy is
     }
 
     function setValidator(
-        address _validator,
-        bool _isValid
+        address[] calldata _validators,
+        bool _isValids
     ) external onlyOwner {
-        if (_validator == address(0)) {
+        if (_validators.length == 0) {
             revert InvalidParam();
         }
-        validators[_validator] = _isValid;
-        emit ValidatorChanged(_validator, _isValid);
+        for (uint256 i = 0; i < _validators.length; i++) {
+            if (_validators[i] == address(0)) {
+                revert InvalidParam();
+            }
+            validators[_validators[i]] = _isValids;
+            emit ValidatorChanged(_validators[i], _isValids);
+        }
     }
 
     function setRelayerApprovalAmount(
