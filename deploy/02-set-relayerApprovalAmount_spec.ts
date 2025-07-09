@@ -9,18 +9,16 @@ const deployFn: DeployFunction = async (hre) => {
   // BSC Proxy: 0x8aab583A03578d20F615f2DE2366b6b475040A24
   // Base Proxy: 0x7645f840A483721B4a48dC1D97566AE87DF0A612
   const omnichainSwapProxy = "";
-  // BSC USDT: 0x55d398326f99059fF775485246999027B3197955
-  // BSC USDC: 0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d
-  // BSC USD1: 0x8d0D000Ee44948FC98c9B98A4FA4921476f08B0d
+  const newRelayer = "";
   // BASE USDC: 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913
-  const whitelistedToken = "";
-  const whitelisted = true;
-  const tx = await OmnichainSwapProxy__factory.connect(omnichainSwapProxy, deployer).setWhitelistToken(whitelistedToken, whitelisted);
+  const stableCoin = "";
+  const amount = ethers.parseUnits("1000", 6);
+  const tx = await OmnichainSwapProxy__factory.connect(omnichainSwapProxy, deployer).setRelayerApprovalAmount(newRelayer, stableCoin, amount);
   await tx.wait();
-  console.log("Whitelist set");
+  console.log("RelayerApprovalAmount set");
 }
 
 // This is kept during an upgrade. So no upgrade tag.
-deployFn.tags = ['SetWhitelist']
+deployFn.tags = ['SetRelayerApprovalAmount']
 
 export default deployFn

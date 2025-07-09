@@ -106,16 +106,14 @@ before(async function () {
   omnichainSwapProxyAddress = await omnichainSwapProxyContract.getAddress();
   console.log("omnichainSwapProxyAddress: ", omnichainSwapProxyAddress)
 
-  await omnichainSwapProxyContract.connect(deployer).setValidator(validator1Address, true);
-  await omnichainSwapProxyContract.connect(deployer).setValidator(validator2Address, true);
-  await omnichainSwapProxyContract.connect(deployer).setValidator(validator3Address, true);
+  await omnichainSwapProxyContract.connect(deployer).setValidator([validator1Address, validator2Address, validator3Address], true);
   await omnichainSwapProxyContract.connect(deployer).setValidatorThreshold(2);
   await omnichainSwapProxyContract.connect(deployer).setRelayerApprovalAmount(relayerAddress, _usdt, ethers.parseEther("1000000"));
   await omnichainSwapProxyContract.connect(deployer).setWithdrawer(withdrawerAddress);
-  await omnichainSwapProxyContract.connect(deployer).setWhitelistDstChainId(8453, true);
+  await omnichainSwapProxyContract.connect(deployer).setWhitelistDstChainId([8453], true);
 
-  await expect(omnichainSwapProxyContract.connect(user).withdrawTokens(_usdt, userAddress, 1000, [])).to.be.revertedWithCustomError(omnichainSwapProxyContract, ERRORS.NotWithdrawer);
-  await expect(omnichainSwapProxyContract.connect(user).withdrawEth(userAddress, 1000, [])).to.be.revertedWithCustomError(omnichainSwapProxyContract, ERRORS.NotWithdrawer);
+  await expect(omnichainSwapProxyContract.connect(user).withdrawTokens(_usdt, userAddress, 1000)).to.be.revertedWithCustomError(omnichainSwapProxyContract, ERRORS.NotWithdrawer);
+  await expect(omnichainSwapProxyContract.connect(user).withdrawEth(userAddress, 1000)).to.be.revertedWithCustomError(omnichainSwapProxyContract, ERRORS.NotWithdrawer);
   await expect(omnichainSwapProxyContract.connect(user).emergePause()).to.be.revertedWithCustomError(omnichainSwapProxyContract, ERRORS.OwnableUnauthorizedAccount);
   await expect(omnichainSwapProxyContract.connect(user).unPause()).to.be.revertedWithCustomError(omnichainSwapProxyContract, ERRORS.OwnableUnauthorizedAccount);
   await expect(omnichainSwapProxyContract.connect(user).setWhitelistToken(_usdt, true)).to.be.revertedWithCustomError(omnichainSwapProxyContract, ERRORS.OwnableUnauthorizedAccount);

@@ -4,12 +4,14 @@ import { ethers, upgrades } from 'hardhat';
 
 const deployFn: DeployFunction = async (hre) => {
   const [deployer] = await ethers.getSigners();
+  console.log("deployer address: ", deployer.address)
 
   const OmnichainSwapProxy = await ethers.getContractFactory("OmnichainSwapProxy");
-  const relayer = ''
+  //bsc router address: 0xcF74F56112f260DdEe729753553FbD18509DEF8F
+  //base router address: 0x7947e5f78E78190eE2d62E36F04Ca008C7b69Afd
   const tomoRouter = ''
 
-  const proxy = await upgrades.deployProxy(OmnichainSwapProxy, [deployer.address, relayer, tomoRouter]);
+  const proxy = await upgrades.deployProxy(OmnichainSwapProxy, [deployer.address, deployer.address, tomoRouter]);
   await proxy.waitForDeployment()
   
   const proxyAddress = await proxy.getAddress()
