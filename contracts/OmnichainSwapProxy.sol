@@ -94,10 +94,10 @@ contract OmnichainSwapProxy is
         uint256 amount,
         bytes txHash
     );
-    event RefundStableCoinThresholdChanged(
-        uint256 indexed prevRefundStableCoinThreshold,
-        uint256 indexed newRefundStableCoinThreshold
-    );
+    // event RefundStableCoinThresholdChanged(
+    //     uint256 indexed prevRefundStableCoinThreshold,
+    //     uint256 indexed newRefundStableCoinThreshold
+    // );
 
     //only stable coin is in whitelist. eg: USDT/USDC
     modifier isWhitelisted(address token) {
@@ -279,11 +279,12 @@ contract OmnichainSwapProxy is
         ) {
             revert SignatureInvalid();
         }
-        if (alreadyRefundedAmount + data.amount > refundStableCoinThreshold) {
-            revert RefundStableCoinThresholdExceeded();
-        }
+        // if (alreadyRefundedAmount + data.amount > refundStableCoinThreshold) {
+        //     revert RefundStableCoinThresholdExceeded();
+        // }
         usedHash[data.txHash] = true;
-        alreadyRefundedAmount += data.amount;
+        relayerApprovalAmount[msg.sender][data.token] -= data.amount;
+        // alreadyRefundedAmount += data.amount;
         _validateRefundStableCoinSignatures(
             data.token,
             data.to,
@@ -379,19 +380,19 @@ contract OmnichainSwapProxy is
         emit WithdrawerChanged(prevWithdrawer, _withdrawer);
     }
 
-    function setRefundStableCoinThreshold(
-        uint256 _refundStableCoinThreshold
-    ) external onlyOwner {
-        if (_refundStableCoinThreshold == 0) {
-            revert InvalidParam();
-        }
-        uint256 prevRefundStableCoinThreshold = refundStableCoinThreshold;
-        refundStableCoinThreshold = _refundStableCoinThreshold;
-        emit RefundStableCoinThresholdChanged(
-            prevRefundStableCoinThreshold,
-            refundStableCoinThreshold
-        );
-    }
+    // function setRefundStableCoinThreshold(
+    //     uint256 _refundStableCoinThreshold
+    // ) external onlyOwner {
+    //     if (_refundStableCoinThreshold == 0) {
+    //         revert InvalidParam();
+    //     }
+    //     uint256 prevRefundStableCoinThreshold = refundStableCoinThreshold;
+    //     refundStableCoinThreshold = _refundStableCoinThreshold;
+    //     emit RefundStableCoinThresholdChanged(
+    //         prevRefundStableCoinThreshold,
+    //         refundStableCoinThreshold
+    //     );
+    // }
 
     function emergePause() external onlyOwner {
         _pause();
