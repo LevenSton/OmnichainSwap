@@ -69,8 +69,13 @@ contract OmnichainSwapProxy is
         address indexed newTomoRouter
     );
     event TokenWhitelisted(address indexed token, bool indexed whitelisted);
-    event EthWithdrawn(address indexed to, uint256 amount);
+    event EthWithdrawn(
+        uint256 indexed eventIndex,
+        address indexed to,
+        uint256 amount
+    );
     event Erc20TokenWithdrawn(
+        uint256 indexed eventIndex,
         address indexed token,
         address indexed to,
         uint256 amount
@@ -89,6 +94,7 @@ contract OmnichainSwapProxy is
         bool indexed whitelisted
     );
     event RefundStableCoin(
+        uint256 indexed eventIndex,
         address indexed token,
         address indexed to,
         uint256 amount,
@@ -240,7 +246,7 @@ contract OmnichainSwapProxy is
             revert InvalidParam();
         }
         IERC20(token).safeTransfer(to, amount);
-        emit Erc20TokenWithdrawn(token, to, amount);
+        emit Erc20TokenWithdrawn(eventIndex++, token, to, amount);
     }
 
     function withdrawEth(address to, uint256 amount) external onlyWithdrawer {
@@ -251,7 +257,7 @@ contract OmnichainSwapProxy is
         if (!suc) {
             revert TransferFailed();
         }
-        emit EthWithdrawn(to, amount);
+        emit EthWithdrawn(eventIndex++, to, amount);
     }
 
     function refundStableCoinIfSwapFailedOnDstChain(
@@ -293,7 +299,13 @@ contract OmnichainSwapProxy is
             data.signatures
         );
         IERC20(data.token).safeTransfer(data.to, data.amount);
-        emit RefundStableCoin(data.token, data.to, data.amount, data.txHash);
+        emit RefundStableCoin(
+            eventIndex++,
+            data.token,
+            data.to,
+            data.amount,
+            data.txHash
+        );
     }
 
     function setWhitelistToken(
