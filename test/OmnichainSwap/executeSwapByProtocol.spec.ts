@@ -143,14 +143,15 @@ makeSuiteCleanRoom('Execute OmnichainSwap crossChainSwapToByProtocol', function 
                 const txHashHex = "0x742d35cc6ad4c3c76c85c4f1e7d4b4e1f8a8d2c3b4a5e6f7890123456789abcd"
                 const txHashBytes = ethers.getBytes(txHashHex);
                 const signatures = await buildCrossChainSwapToByProtocolSeparator
-                    (omnichainSwapProxyAddress, "OmnichainBridge", _usdt, _usdt, userAddress, crossAmount, 8453, 8453, txHashBytes);
+                    (omnichainSwapProxyAddress, "OmnichainBridge", _usdt, _usdt, userAddress, crossAmount, 8453, 1, txHashBytes);
+                console.log("signatures: ", signatures)
                 await expect(omnichainSwapProxyContract.connect(relayer).crossChainSwapToByProtocol({
                     srcToken: _usdt,
                     dstToken: _usdt,
                     to: userAddress,
                     amount: crossAmount,
                     fromChainId: 8453,
-                    dstChainId: 8453,
+                    dstChainId: 1,
                     txHash: txHashBytes,
                     routerCalldata: "0x",
                     signatures: signatures

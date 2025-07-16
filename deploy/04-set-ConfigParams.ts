@@ -23,12 +23,6 @@ const deployFn: DeployFunction = async (hre) => {
   await tx1.wait();
   console.log("SetThreshold set");
 
-  // set whitelist tokens
-  const refundStableCoinThreshold = ethers.parseUnits("10000", 6);
-  const tx2 = await OmnichainSwapProxy__factory.connect(omnichainSwapProxy, deployer).setRefundStableCoinThreshold(refundStableCoinThreshold);
-  await tx2.wait();
-  console.log("SetRefundStableCoinThreshold set");
-
   // set whitelist dst chain ids
   //fill whitelist dst chain ids here
   const whitelistDstChainIds = [56, 1, 195];
