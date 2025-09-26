@@ -50,3 +50,9 @@ vim deploy/04-set-ConfigParams.ts
 
 npx hardhat deploy --network ${NETWORK} --tags SetConfigParams
 ```
+
+### Test case
+
+```
+npx hardhat test
+```
