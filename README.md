@@ -46,7 +46,7 @@ npx hardhat deploy --network ${NETWORK} --tags SetWhitelist
 ```
 vim deploy/04-set-ConfigParams.ts
 
-- fill in right address to param "omnichainSwapProxy/validators/validatorThreshold/refundStableCoinThreshold/whitelistDstChainIds/"
+- fill in right address to param "04-set-ConfigParams.ts"
 
 npx hardhat deploy --network ${NETWORK} --tags SetConfigParams
 ```
@@ -55,4 +55,10 @@ npx hardhat deploy --network ${NETWORK} --tags SetConfigParams
 
 ```
 npx hardhat test
+```
+
+- run a signle test calse
+
+```
+npx hardhat test --grep "xxxxxxxx...."
 ```
