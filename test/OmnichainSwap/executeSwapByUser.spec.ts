@@ -13,7 +13,7 @@ import {
 import { ERRORS } from '../helpers/errors';
 import { ethers, network } from 'hardhat';
 import { BYTES32_ZERO_ADDRESS, MAX_UINT256 } from '../helpers/constants';
-import { ERC20__factory } from '../../typechain-types';
+import { IERC20__factory } from '../../typechain-types';
 
 makeSuiteCleanRoom('Execute OmnichainSwap crossChainSwapToByUser', function () {
     context('Generic', function () {
@@ -79,7 +79,7 @@ makeSuiteCleanRoom('Execute OmnichainSwap crossChainSwapToByUser', function () {
 
         context('Scenarios', function () {
             it('Get correct variable if crossChainSwapToByUser usdt success', async function () {
-                const USDT = ERC20__factory.connect(_usdt)
+                const USDT = IERC20__factory.connect(_usdt)
                 const bscBigHolder = '0x4B14BdC6c1CFD2eC9E947c31E12b8Cf6d26E3E75'
                 await network.provider.request({
                     method: "hardhat_impersonateAccount",

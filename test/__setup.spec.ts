@@ -94,7 +94,6 @@ before(async function () {
   
   _tomoSwapRouter = "0x1628d966d33b32f9a97ef7bB773546e363C19b26";
   _usdt = "0x55d398326f99059fF775485246999027B3197955"
-
   const OmnichainSwapProxy = await ethers.getContractFactory("OmnichainSwapProxy");
   const omnichainSwapProxy = await upgrades.deployProxy(OmnichainSwapProxy, [deployerAddress, deployerAddress, _tomoSwapRouter]);
   const proxyAddress = await omnichainSwapProxy.getAddress()
@@ -111,6 +110,12 @@ before(async function () {
   await omnichainSwapProxyContract.connect(deployer).setRelayerApprovalAmount(relayerAddress, _usdt, ethers.parseEther("1000000"));
   await omnichainSwapProxyContract.connect(deployer).setWithdrawer(withdrawerAddress);
   await omnichainSwapProxyContract.connect(deployer).setWhitelistDstChainId([8453], true);
+
+  // authorized interface check
+  await expect(omnichainSwapProxyContract.connect(user).setValidator([validator1Address, validator2Address, validator3Address], true)).to.be.revertedWithCustomError(omnichainSwapProxyContract, ERRORS.OwnableUnauthorizedAccount);
+  await expect(omnichainSwapProxyContract.connect(user).setValidatorThreshold(2)).to.be.revertedWithCustomError(omnichainSwapProxyContract, ERRORS.OwnableUnauthorizedAccount);
+  await expect(omnichainSwapProxyContract.connect(user).setWithdrawer(withdrawerAddress)).to.be.revertedWithCustomError(omnichainSwapProxyContract, ERRORS.OwnableUnauthorizedAccount);
+  await expect(omnichainSwapProxyContract.connect(user).setWhitelistDstChainId([8453], true)).to.be.revertedWithCustomError(omnichainSwapProxyContract, ERRORS.OwnableUnauthorizedAccount);
 
   await expect(omnichainSwapProxyContract.connect(user).withdrawTokens(_usdt, userAddress, 1000)).to.be.revertedWithCustomError(omnichainSwapProxyContract, ERRORS.NotWithdrawer);
   await expect(omnichainSwapProxyContract.connect(user).withdrawEth(userAddress, 1000)).to.be.revertedWithCustomError(omnichainSwapProxyContract, ERRORS.NotWithdrawer);
