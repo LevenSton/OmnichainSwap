@@ -156,6 +156,25 @@ makeSuiteCleanRoom('Execute OmnichainSwap crossChainSwapToByProtocol', function 
                     signatures: signatures
                 })).to.be.reverted
             });
+            it('Should fail to crossChainSwapToByProtocol if paused.', async function () {
+                await expect(omnichainSwapProxyContract.connect(deployer).emergePause()).to.be.not.reverted
+                
+                const txHashHex = "0x742d35cc6ad4c3c76c85c4f1e7d4b4e1f8a8d2c3b4a5e6f7890123456789abcd"
+                const txHashBytes = ethers.getBytes(txHashHex);
+                const signatures = await buildCrossChainSwapToByProtocolSeparator
+                    (omnichainSwapProxyAddress, "OmnichainBridge", _usdt, _usdt, userAddress, crossAmount, 8453, 1, txHashBytes);
+                await expect(omnichainSwapProxyContract.connect(relayer).crossChainSwapToByProtocol({
+                    srcToken: _usdt,
+                    dstToken: _usdt,
+                    to: userAddress,
+                    amount: crossAmount,
+                    fromChainId: 8453,
+                    dstChainId: 1,
+                    txHash: txHashBytes,
+                    routerCalldata: "0x",
+                    signatures: signatures
+                })).to.be.revertedWithCustomError(omnichainSwapProxyContract, ERRORS.EnforcedPause);
+            });
             it('Should fail to refundStableCoinIfSwapFailedOnDstChain if not enough balance.', async function () {
                 const txHashHex = "0x742d35cc6ad4c3c76c85c4f1e7d4b4e1f8a8d2c3b4a5e6f7890123456789abcd"
                 const txHashBytes = ethers.getBytes(txHashHex);
@@ -166,7 +185,21 @@ makeSuiteCleanRoom('Execute OmnichainSwap crossChainSwapToByProtocol', function 
                     amount: crossAmount,
                     txHash: txHashBytes,
                     signatures: signatures
-                })).to.be.reverted
+                })).to.be.reverted;
+            });
+            it('Should fail to refundStableCoinIfSwapFailedOnDstChain if paused.', async function () {
+                await expect(omnichainSwapProxyContract.connect(deployer).emergePause()).to.be.not.reverted
+
+                const txHashHex = "0x742d35cc6ad4c3c76c85c4f1e7d4b4e1f8a8d2c3b4a5e6f7890123456789abcd"
+                const txHashBytes = ethers.getBytes(txHashHex);
+                const signatures = await buildRefundStableCoinSeparator(omnichainSwapProxyAddress, "OmnichainBridge", _usdt, userAddress, crossAmount, txHashBytes);
+                await expect(omnichainSwapProxyContract.connect(relayer).refundStableCoinIfSwapFailedOnDstChain({
+                    token: _usdt,
+                    to: userAddress,
+                    amount: crossAmount,
+                    txHash: txHashBytes,
+                    signatures: signatures
+                })).to.be.revertedWithCustomError(omnichainSwapProxyContract, ERRORS.EnforcedPause);
             });
             it('failed withdraw token if not enough balance.', async function () {
                 await expect(omnichainSwapProxyContract.connect(withdrawer).withdrawTokens(_usdt, userAddress, crossAmount)).to.be.reverted;
