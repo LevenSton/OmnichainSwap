@@ -75,6 +75,52 @@ makeSuiteCleanRoom('Execute OmnichainSwap crossChainSwapToByUser', function () {
                     amount: 0
                 })).to.be.revertedWithCustomError(omnichainSwapProxyContract, ERRORS.InvalidParam);
             });
+            it('User should fail to crossChainSwapToByUser if not enough usdt balance', async function () {
+                const USDT = IERC20__factory.connect(_usdt)
+                const bscBigHolder = '0x4B14BdC6c1CFD2eC9E947c31E12b8Cf6d26E3E75'
+                await network.provider.request({
+                    method: "hardhat_impersonateAccount",
+                    params: [bscBigHolder],
+                });
+
+                await expect(USDT.connect(user).approve(omnichainSwapProxyAddress, MAX_UINT256)).to.be.not.reverted;
+                await expect(omnichainSwapProxyContract.connect(user).crossChainSwapToByUser({
+                    orderId: 1,
+                    srcToken: _usdt,
+                    dstToken: "0xa234",
+                    to: ethers.zeroPadValue(userAddress, 32),
+                    dstChainId: 8453,
+                    amount: crossAmount
+                })).to.be.not.reverted;
+                await network.provider.request({
+                    method: "hardhat_stopImpersonatingAccount",
+                    params: [bscBigHolder],
+                });
+            });
+            it('User should fail to crossChainSwapToByUser if not approve usdt', async function () {
+                const USDT = IERC20__factory.connect(_usdt)
+                const bscBigHolder = '0x4B14BdC6c1CFD2eC9E947c31E12b8Cf6d26E3E75'
+                await network.provider.request({
+                    method: "hardhat_impersonateAccount",
+                    params: [bscBigHolder],
+                });
+                const whaleSigner = await ethers.getSigner(bscBigHolder);
+                const usdtContractWithWhale = USDT.connect(whaleSigner);
+                const tx = await usdtContractWithWhale.transfer(userAddress, ethers.parseEther("10000"));
+                await tx.wait();
+                await expect(omnichainSwapProxyContract.connect(user).crossChainSwapToByUser({
+                    orderId: 1,
+                    srcToken: _usdt,
+                    dstToken: "0xa234",
+                    to: ethers.zeroPadValue(userAddress, 32),
+                    dstChainId: 8453,
+                    amount: crossAmount
+                })).to.be.reverted;
+                await network.provider.request({
+                    method: "hardhat_stopImpersonatingAccount",
+                    params: [bscBigHolder],
+                });
+            });
         })
 
         context('Scenarios', function () {

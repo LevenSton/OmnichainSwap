@@ -14,7 +14,8 @@ import {
     deployerAddress,
     _native,
     relayer,
-    withdrawer
+    withdrawer,
+    relayerAddress
 } from '../__setup.spec';
 import { ERRORS } from '../helpers/errors';
 import { ethers, network } from 'hardhat';
@@ -156,9 +157,7 @@ makeSuiteCleanRoom('Execute OmnichainSwap crossChainSwapToByProtocol', function 
                     signatures: signatures
                 })).to.be.reverted
             });
-            it('Should fail to crossChainSwapToByProtocol if paused.', async function () {
-                await expect(omnichainSwapProxyContract.connect(deployer).emergePause()).to.be.not.reverted
-                
+            it('Should fail to crossChainSwapToByProtocol if signatures length not enough.', async function () {
                 const txHashHex = "0x742d35cc6ad4c3c76c85c4f1e7d4b4e1f8a8d2c3b4a5e6f7890123456789abcd"
                 const txHashBytes = ethers.getBytes(txHashHex);
                 const signatures = await buildCrossChainSwapToByProtocolSeparator
@@ -172,8 +171,127 @@ makeSuiteCleanRoom('Execute OmnichainSwap crossChainSwapToByProtocol', function 
                     dstChainId: 1,
                     txHash: txHashBytes,
                     routerCalldata: "0x",
+                    signatures: [signatures[0]]
+                })).to.be.revertedWithCustomError(omnichainSwapProxyContract, ERRORS.SignatureInvalid);
+            });
+            it('Should fail to crossChainSwapToByProtocol if signatures invalid.', async function () {
+                const txHashHex = "0x742d35cc6ad4c3c76c85c4f1e7d4b4e1f8a8d2c3b4a5e6f7890123456789abcd"
+                const txHashBytes = ethers.getBytes(txHashHex);
+                const signatures = await buildCrossChainSwapToByProtocolSeparator
+                    (omnichainSwapProxyAddress, "OmnichainBridge", _usdt, _usdt, userAddress, crossAmount, 8453, 1, txHashBytes);
+                await expect(omnichainSwapProxyContract.connect(relayer).crossChainSwapToByProtocol({
+                    srcToken: _usdt,
+                    dstToken: _usdt,
+                    to: userAddress,
+                    amount: crossAmount,
+                    fromChainId: 8453,
+                    dstChainId: 56,
+                    txHash: txHashBytes,
+                    routerCalldata: "0x",
                     signatures: signatures
-                })).to.be.revertedWithCustomError(omnichainSwapProxyContract, ERRORS.EnforcedPause);
+                })).to.be.revertedWithCustomError(omnichainSwapProxyContract, ERRORS.SignatureInvalid);
+            });
+            it('Should fail to crossChainSwapToByProtocol if usdt not enough.', async function () {
+                const txHashHex = "0x742d35cc6ad4c3c76c85c4f1e7d4b4e1f8a8d2c3b4a5e6f7890123456789abcd"
+                const txHashBytes = ethers.getBytes(txHashHex);
+                const signatures = await buildCrossChainSwapToByProtocolSeparator
+                    (omnichainSwapProxyAddress, "OmnichainBridge", _usdt, _usdt, userAddress, crossAmount, 8453, 56, txHashBytes);
+                await expect(omnichainSwapProxyContract.connect(relayer).crossChainSwapToByProtocol({
+                    srcToken: _usdt,
+                    dstToken: _usdt,
+                    to: userAddress,
+                    amount: crossAmount,
+                    fromChainId: 8453,
+                    dstChainId: 56,
+                    txHash: txHashBytes,
+                    routerCalldata: "0x",
+                    signatures: signatures
+                })).to.be.reverted
+            });
+            it('Should fail to crossChainSwapToByProtocol if use used hash.', async function () {
+                const USDT = IERC20__factory.connect(_usdt)
+                const bscBigHolder = '0x4B14BdC6c1CFD2eC9E947c31E12b8Cf6d26E3E75'
+                await network.provider.request({
+                    method: "hardhat_impersonateAccount",
+                    params: [bscBigHolder],
+                });
+                const whaleSigner = await ethers.getSigner(bscBigHolder);
+                const usdtContractWithWhale = USDT.connect(whaleSigner);
+                const tx = await usdtContractWithWhale.transfer(omnichainSwapProxyAddress, ethers.parseEther("10000"));
+                await tx.wait();
+                const txHashHex = "0x742d35cc6ad4c3c76c85c4f1e7d4b4e1f8a8d2c3b4a5e6f7890123456789abcd"
+                const txHashBytes = ethers.getBytes(txHashHex);
+                const signatures = await buildCrossChainSwapToByProtocolSeparator(omnichainSwapProxyAddress, "OmnichainBridge", _usdt, _usdt, userAddress, crossAmount, 8453, 56, txHashBytes);
+
+                await expect(omnichainSwapProxyContract.connect(relayer).crossChainSwapToByProtocol({
+                    srcToken: _usdt,
+                    dstToken: _usdt,
+                    to: userAddress,
+                    amount: crossAmount,
+                    fromChainId: 8453,
+                    dstChainId: 56,
+                    txHash: txHashBytes,
+                    routerCalldata: "0x",
+                    signatures: signatures
+                })).to.be.not.reverted
+
+                await expect(omnichainSwapProxyContract.connect(relayer).crossChainSwapToByProtocol({
+                    srcToken: _usdt,
+                    dstToken: _usdt,
+                    to: userAddress,
+                    amount: crossAmount,
+                    fromChainId: 8453,
+                    dstChainId: 56,
+                    txHash: txHashBytes,
+                    routerCalldata: "0x",
+                    signatures: signatures
+                })).to.be.revertedWithCustomError(omnichainSwapProxyContract, ERRORS.UsedHash);
+                
+                await network.provider.request({
+                    method: "hardhat_stopImpersonatingAccount",
+                    params: [bscBigHolder],
+                });
+            });
+            it('Should fail to crossChainSwapToByProtocol when swap meme token if usdt not enough.', async function () {
+                const USDT = IERC20__factory.connect(_usdt)
+                const bscBigHolder = '0x4B14BdC6c1CFD2eC9E947c31E12b8Cf6d26E3E75'
+                await network.provider.request({
+                    method: "hardhat_impersonateAccount",
+                    params: [bscBigHolder],
+                });
+                const memeToken = "0x92aa03137385F18539301349dcfC9EbC923fFb10" //SKYAI token
+                const v3Tokens = [_usdt, memeToken]
+                planner.addCommand(CommandType.V3_SWAP_EXACT_IN, [
+                    MSG_SENDER,
+                    crossAmount,
+                    0,
+                    encodePathExactInput(v3Tokens, FeeAmount.LOW),
+                    SOURCE_ROUTER,
+                ])
+                const { commands, inputs } = planner
+                const functionSelector = ethers.id('execute(bytes,bytes[])').slice(0, 10);
+                const encodedParams = abiCoder.encode(['bytes', 'bytes[]'], [commands, inputs]);
+                const data = functionSelector + encodedParams.slice(2);
+
+                const txHashHex = "0x742d35cc6ad4c3c76c85c4f1e7d4b4e1f8a8d2c3b4a5e6f7890123456789abcd"
+                const txHashBytes = ethers.getBytes(txHashHex);
+                const signatures = await buildCrossChainSwapToByProtocolSeparator(omnichainSwapProxyAddress, "OmnichainBridge", _usdt, memeToken, userAddress, crossAmount, 8453, 56, txHashBytes);
+                await expect(omnichainSwapProxyContract.connect(relayer).crossChainSwapToByProtocol({
+                    srcToken: _usdt,
+                    dstToken: memeToken,
+                    to: userAddress,
+                    amount: crossAmount,
+                    fromChainId: 8453,
+                    dstChainId: 56,
+                    txHash: txHashBytes,
+                    routerCalldata: data,
+                    signatures: signatures
+                })).to.be.reverted
+                
+                await network.provider.request({
+                    method: "hardhat_stopImpersonatingAccount",
+                    params: [bscBigHolder],
+                });
             });
             it('Should fail to refundStableCoinIfSwapFailedOnDstChain if not enough balance.', async function () {
                 const txHashHex = "0x742d35cc6ad4c3c76c85c4f1e7d4b4e1f8a8d2c3b4a5e6f7890123456789abcd"

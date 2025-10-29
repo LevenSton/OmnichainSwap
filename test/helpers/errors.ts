@@ -8,5 +8,7 @@ export const ERRORS = {
     NotWithdrawer: "NotWithdrawer",
     TransferFailed: "TransferFailed",
     RefundStableCoinThresholdExceeded: "RefundStableCoinThresholdExceeded",
+    SignatureInvalid: "SignatureInvalid",
+    UsedHash: "UsedHash",
 };
   
