@@ -319,6 +319,42 @@ makeSuiteCleanRoom('Execute OmnichainSwap crossChainSwapToByProtocol', function 
                     signatures: signatures
                 })).to.be.revertedWithCustomError(omnichainSwapProxyContract, ERRORS.EnforcedPause);
             });
+            it('Should fail to refundStableCoinIfSwapFailedOnDstChain if not relayer.', async function () {
+                const txHashHex = "0x742d35cc6ad4c3c76c85c4f1e7d4b4e1f8a8d2c3b4a5e6f7890123456789abcd"
+                const txHashBytes = ethers.getBytes(txHashHex);
+                const signatures = await buildRefundStableCoinSeparator(omnichainSwapProxyAddress, "OmnichainBridge", _usdt, userAddress, crossAmount, txHashBytes);
+                await expect(omnichainSwapProxyContract.connect(user).refundStableCoinIfSwapFailedOnDstChain({
+                    token: _usdt,
+                    to: userAddress,
+                    amount: crossAmount,
+                    txHash: txHashBytes,
+                    signatures: signatures
+                })).to.be.revertedWithCustomError(omnichainSwapProxyContract, ERRORS.NotRelayerOrInsufficientApproval);
+            });
+            it('Should fail to refundStableCoinIfSwapFailedOnDstChain if signature lengths invalid', async function () {
+                const txHashHex = "0x742d35cc6ad4c3c76c85c4f1e7d4b4e1f8a8d2c3b4a5e6f7890123456789abcd"
+                const txHashBytes = ethers.getBytes(txHashHex);
+                const signatures = await buildRefundStableCoinSeparator(omnichainSwapProxyAddress, "OmnichainBridge", _usdt, userAddress, crossAmount, txHashBytes);
+                await expect(omnichainSwapProxyContract.connect(relayer).refundStableCoinIfSwapFailedOnDstChain({
+                    token: _usdt,
+                    to: userAddress,
+                    amount: crossAmount,
+                    txHash: txHashBytes,
+                    signatures: [signatures[0]]
+                })).to.be.revertedWithCustomError(omnichainSwapProxyContract, ERRORS.SignatureInvalid);
+            });
+            it('Should fail to refundStableCoinIfSwapFailedOnDstChain if signature invalid', async function () {
+                const txHashHex = "0x742d35cc6ad4c3c76c85c4f1e7d4b4e1f8a8d2c3b4a5e6f7890123456789abcd"
+                const txHashBytes = ethers.getBytes(txHashHex);
+                const signatures = await buildRefundStableCoinSeparator(omnichainSwapProxyAddress, "fakeOmnichainBridge", _usdt, userAddress, crossAmount, txHashBytes);
+                await expect(omnichainSwapProxyContract.connect(relayer).refundStableCoinIfSwapFailedOnDstChain({
+                    token: _usdt,
+                    to: userAddress,
+                    amount: crossAmount,
+                    txHash: txHashBytes,
+                    signatures: signatures
+                })).to.be.revertedWithCustomError(omnichainSwapProxyContract, ERRORS.SignatureInvalid);
+            });
             it('failed withdraw token if not enough balance.', async function () {
                 await expect(omnichainSwapProxyContract.connect(withdrawer).withdrawTokens(_usdt, userAddress, crossAmount)).to.be.reverted;
             });

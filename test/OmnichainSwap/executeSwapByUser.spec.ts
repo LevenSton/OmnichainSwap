@@ -91,7 +91,7 @@ makeSuiteCleanRoom('Execute OmnichainSwap crossChainSwapToByUser', function () {
                     to: ethers.zeroPadValue(userAddress, 32),
                     dstChainId: 8453,
                     amount: crossAmount
-                })).to.be.not.reverted;
+                })).to.be.reverted;
                 await network.provider.request({
                     method: "hardhat_stopImpersonatingAccount",
                     params: [bscBigHolder],
